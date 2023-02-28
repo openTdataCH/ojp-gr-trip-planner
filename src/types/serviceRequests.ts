@@ -1,4 +1,5 @@
 export type ServiceRequest = {
+  error: boolean;
   requesterRef: string;
   requestTimestamp: string;
 } & (

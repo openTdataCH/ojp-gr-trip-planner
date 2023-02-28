@@ -3,12 +3,14 @@ import { Request, Response } from 'express';
 import * as xml2js from 'xml2js';
 import jsdom from 'jsdom';
 import { Location } from 'ojp-sdk';
-import { xmlToServiceRequest } from '../helpers/XMLToObjectMapper';
+import {
+  createLocationInfoResponse,
+  NameToSystemMapper,
+  xmlToServiceRequest,
+} from '../helpers';
 import { XMLRequest } from '../types/xmlRequest';
-import { createLocationInfoResponse } from '../helpers/createLocationInfoResponse';
 import CONFIG from '../config';
 import { locationInformationRequest } from '../passiveSystems/locationInformationRequest';
-import { NameToSystemMapper } from '../helpers/nameToSystemMapper';
 import { PASSIVE_SYSTEM } from '../config/passiveSystems';
 
 const { JSDOM } = jsdom;
@@ -25,26 +27,16 @@ export const postOJPXML = async (req: Request, res: Response) => {
   const xmlRequest: XMLRequest = req.body;
   const serviceRequest = xmlToServiceRequest(xmlRequest);
 
+  if (serviceRequest.error) {
+    return res.status(400).send();
+  }
+
   if (serviceRequest.requestType === 'LocationInformationRequest') {
     try {
-      const responseFromPassiveSystems = await Promise.all(
-        Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
-          return (
-            await locationInformationRequest(
-              passiveSystem,
-              serviceRequest.body.initialInput,
-            )
-          ).map(location =>
-            NameToSystemMapper.add(
-              location,
-              passiveSystem.key as PASSIVE_SYSTEM,
-            ),
-          );
-        }),
-      );
-      const resultXML = createLocationInfoResponse(
-        makeDistinctLocations(responseFromPassiveSystems.flat()),
-      );
+      const resultXML =
+        await createLocationInformationResponseFromPassiveSystems(
+          serviceRequest.body.initialInput,
+        );
       return res.status(200).send(resultXML);
     } catch (e) {
       throw e;
@@ -58,14 +50,27 @@ export const postOJPXML = async (req: Request, res: Response) => {
   return res.status(200).send(xml);
 };
 
-export default {
-  getTestXML: postOJPXML,
-};
-
 function makeDistinctLocations(locations: Location[]) {
   return [
     ...new Map(
       locations.map(location => [location.computeLocationName(), location]),
     ).values(),
   ];
+}
+
+async function createLocationInformationResponseFromPassiveSystems(
+  initialInput: string,
+) {
+  const responseFromPassiveSystems = await Promise.all(
+    Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+      return (
+        await locationInformationRequest(passiveSystem, initialInput)
+      ).map(location =>
+        NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM),
+      );
+    }),
+  );
+  return createLocationInfoResponse(
+    makeDistinctLocations(responseFromPassiveSystems.flat()),
+  );
 }

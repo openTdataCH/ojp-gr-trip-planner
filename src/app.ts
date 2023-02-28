@@ -45,7 +45,7 @@ export const createApp = (): express.Application => {
     );
     // set the CORS method headers
     if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Methods', 'GET PATCH DELETE POST');
+      res.header('Access-Control-Allow-Methods', 'POST');
       return res.status(200).json({});
     }
     next();
