@@ -14,8 +14,7 @@ const mockRequest = {
     /* snippet */
   },
 } as Request;
-const mockResponse = {
-}  as Response;
+const mockResponse = {} as Response;
 
 describe('post OJP XML', () => {
   describe('test something', () => {

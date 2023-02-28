@@ -2,8 +2,8 @@
   "compilerOptions": {
     /* Basic Options */
     "incremental": true,
-    "target": "ESNext",
-    "module": "commonjs",
+    "target": "esnext",
+    "module": "esnext",
     "outDir": "dist",
     "pretty": true,
     "removeComments": true,
@@ -32,9 +32,6 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["jest", "node"],
     "baseUrl": "src",
-    "paths": {
-        "@/*": ["./*"]
-    },
   },
   "include": ["src/**/*", "**/__tests__/**/*"],
   "exclude": ["node_modules"],

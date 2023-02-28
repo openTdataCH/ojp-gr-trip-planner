@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { postOJPXML } from '@/controllers/postOJPXML';
+import { postOJPXML } from '../controllers/postOJPXML';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Location } from 'ojp-sdk';
-import { PASSIVE_SYSTEM } from '@/config/passiveSystems';
+import { PASSIVE_SYSTEM } from '../config/passiveSystems';
 
 export abstract class NameToSystemMapper {
   private static nameToSystemMap = new Map();

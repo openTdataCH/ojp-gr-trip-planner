@@ -4,8 +4,8 @@ import {
   OJP_TripRequest,
   TripServiceRequest,
   XMLRequest,
-} from '@/types/xmlRequest';
-import { ServiceRequest } from '@/types/serviceRequests';
+} from '../types/xmlRequest';
+import { ServiceRequest } from '../types/serviceRequests';
 
 declare global {
   interface Array<T> {

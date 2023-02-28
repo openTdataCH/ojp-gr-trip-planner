@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires*/
 // tslint:disable-next-line:no-var-requires
 
-import { addAlias } from 'module-alias';
 import { dirname } from 'path';
+import { addAlias } from 'module-alias';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -13,6 +13,7 @@ addAlias('@', __dirname);
 
 import { createApp } from './app';
 import { startServer } from './server';
+// eslint-disable-next-line import/order
 import { fileURLToPath } from 'url';
 
 if (process.env.NODE_ENV !== 'test') {
