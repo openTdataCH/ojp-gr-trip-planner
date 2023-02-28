@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 
 import HttpStatus from 'http-status/lib';
-import { TimeOutError } from '@/helpers/error';
+import { TimeOutError } from '../helpers/error';
 
 const NOT_FOUND = 404;
 const INTERNAL_SERVER_ERROR = 500;

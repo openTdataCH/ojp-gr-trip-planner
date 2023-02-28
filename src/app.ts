@@ -6,8 +6,8 @@ import timeout from 'connect-timeout';
 import xmlparser from 'express-xml-bodyparser';
 import CONFIG from './config';
 import { expressPinoLogger } from './helpers';
-import * as errorHandler from '@/middlewares/errorHandler';
-import routes from '@/routes';
+import * as errorHandler from './middlewares/errorHandler';
+import routes from './routes';
 
 export const createApp = (): express.Application => {
   const app = express();

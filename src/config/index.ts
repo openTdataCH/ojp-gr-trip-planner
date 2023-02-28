@@ -1,9 +1,9 @@
-import pkg from '../../package.json';
+import pkg from '../../package.json' assert { type: 'json' };
 
 // https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { config } from 'dotenv';
-import { passiveSystemsConfig } from '../config/passiveSystems';
+import { passiveSystemsConfig } from './passiveSystems';
 
 config();
 

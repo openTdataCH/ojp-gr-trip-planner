@@ -1,5 +1,5 @@
 import httpStatus from 'http-status/lib';
-import CONFIG from '@/config';
+import CONFIG from '../../config';
 
 const REQUEST_TIMEOUT = 408;
 
