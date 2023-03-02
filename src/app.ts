@@ -8,9 +8,11 @@ import CONFIG from './config';
 import { expressPinoLogger } from './helpers';
 import * as errorHandler from './middlewares/errorHandler';
 import routes from './routes';
+import { ExchangePoints } from './utils/exchangePoints';
 
 export const createApp = (): express.Application => {
   const app = express();
+  ExchangePoints.init('SBB', 'STA');
 
   const allowedOrigins = ['http://localhost:4200'];
 
