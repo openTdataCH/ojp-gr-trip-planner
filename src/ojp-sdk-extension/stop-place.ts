@@ -36,8 +36,12 @@ export class StopPlace {
       'ojp:StopPlace/ojp:StopPlaceName/ojp:Text',
       contextNode,
     );
+    let privateCodeNodes = XPathOJP.queryNodes(
+      'ojp:StopPlace/ojp:PrivateCode',
+      contextNode,
+    );
 
-    if (!(stopPlaceRef && stopPlaceName)) {
+    if (!(stopPlaceRef && stopPlaceName && privateCodeNodes)) {
       stopPlaceRef = XPathOJP.queryText(
         'ojp:StopPoint/siri:StopPointRef',
         contextNode,
@@ -46,19 +50,18 @@ export class StopPlace {
         'ojp:StopPoint/ojp:StopPointName/ojp:Text',
         contextNode,
       );
+      privateCodeNodes = XPathOJP.queryNodes(
+        'ojp:StopPoint/ojp:PrivateCode',
+        contextNode,
+      );
     }
 
-    if (!(stopPlaceRef && stopPlaceName)) {
+    if (!(stopPlaceRef && stopPlaceName && privateCodeNodes)) {
       return null;
     }
 
     const topographicPlaceRef = XPathOJP.queryText(
       'ojp:StopPlace/ojp:TopographicPlaceRef',
-      contextNode,
-    );
-
-    const privateCodeNodes = XPathOJP.queryNodes(
-      'ojp:StopPlace/ojp:PrivateCode',
       contextNode,
     );
 
