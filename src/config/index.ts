@@ -35,6 +35,7 @@ const CONFIG = {
     API_KEY: process.env.API_KEY,
   },
   PASSIVE_SYSTEMS: passiveSystemsConfig,
+  WITH_LINK_PROJECTION: false,
 } as const;
 
 export default CONFIG;

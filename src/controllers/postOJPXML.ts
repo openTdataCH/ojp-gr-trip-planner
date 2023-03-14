@@ -13,6 +13,7 @@ import CONFIG from '../config';
 import { locationInformationRequest } from '../passiveSystems/locationInformationRequest';
 import { PASSIVE_SYSTEM, passiveSystemsConfig } from '../config/passiveSystems';
 import { createTripResponse } from '../helpers/createTripResponse';
+import { ServiceRequest } from '../types/serviceRequests';
 
 const { Location, TripLocationPoint, TripsRequestParams } = OJP;
 
@@ -21,12 +22,12 @@ global.DOMParser = new JSDOM().window.DOMParser;
 
 export const postOJPXML = async (req: Request, res: Response) => {
   const obj = {
-    user: {
-      name: 'Max Mustermann',
-      email: 'max.mustermann@example.com',
-      age: 30,
+    Error: {
+      message: 'Internal Server Error',
+      code: 500,
     },
   };
+
   const xmlRequest: XMLRequest = req.body;
   const serviceRequest = xmlToServiceRequest(xmlRequest);
 
@@ -34,40 +35,23 @@ export const postOJPXML = async (req: Request, res: Response) => {
     return res.status(400).send();
   }
 
-  if (serviceRequest.requestType === 'LocationInformationRequest') {
-    try {
+  try {
+    if (serviceRequest.requestType === 'LocationInformationRequest') {
       const resultXML =
         await createLocationInformationResponseFromPassiveSystems(
           serviceRequest.body.initialInput,
         );
       return res.status(200).send(resultXML);
-    } catch (e) {
-      console.error(e);
-      throw e;
+    } else if (serviceRequest.requestType === 'TripRequest') {
+      const tripRequest = generateTripRequestForPassiveSystem(
+        serviceRequest,
+        'SBB',
+      );
+      return res.status(200).send(await getTripResponse(tripRequest));
     }
-  } else if (serviceRequest.requestType === 'TripRequest') {
-    const originRef = serviceRequest.body.origin;
-    const departTimeString = originRef.departTime;
-    const destinationRef = serviceRequest.body.destination.placeRef;
-    const destination = Location.initWithStopPlaceRef(
-      String(destinationRef.stopPointRef),
-      destinationRef.locationName,
-    );
-    const departTime = new Date(departTimeString);
-    const origin = Location.initWithStopPlaceRef(
-      String(originRef.placeRef.stopPointRef),
-      originRef.placeRef.locationName,
-    );
-    const tripRequestParams = TripsRequestParams.initWithLocationsAndDate(
-      new TripLocationPoint(origin),
-      new TripLocationPoint(destination),
-      departTime,
-    );
-    const tripRequest = new OJP.TripRequest(
-      passiveSystemsConfig.SBB,
-      tripRequestParams!,
-    );
-    return res.status(200).send(await getTripRespons(tripRequest));
+  } catch (e) {
+    console.error(e);
+    throw e;
   }
 
   const builder = new xml2js.Builder();
@@ -110,7 +94,7 @@ async function createLocationInformationResponseFromPassiveSystems(
   return 'error';
 }
 
-async function getTripRespons(tripRequest: OJP.TripRequest): Promise<string> {
+async function getTripResponse(tripRequest: OJP.TripRequest): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     tripRequest.fetchResponse((responseText, errorData) => {
       if (errorData) {
@@ -124,4 +108,28 @@ async function getTripRespons(tripRequest: OJP.TripRequest): Promise<string> {
       }
     });
   });
+}
+
+function generateTripRequestForPassiveSystem(
+  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+  system: PASSIVE_SYSTEM,
+) {
+  const originRef = tripServiceRequest.body.origin;
+  const departTimeString = originRef.departTime;
+  const destinationRef = tripServiceRequest.body.destination.placeRef;
+  const destination = Location.initWithStopPlaceRef(
+    String(destinationRef.stopPointRef),
+    destinationRef.locationName,
+  );
+  const departTime = new Date(departTimeString);
+  const origin = Location.initWithStopPlaceRef(
+    String(originRef.placeRef.stopPointRef),
+    originRef.placeRef.locationName,
+  );
+  const tripRequestParams = TripsRequestParams.initWithLocationsAndDate(
+    new TripLocationPoint(origin),
+    new TripLocationPoint(destination),
+    departTime,
+  );
+  return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
 }

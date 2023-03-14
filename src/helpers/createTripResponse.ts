@@ -3,6 +3,7 @@ import OJP, { TripContinousLeg, TripTimedLeg } from 'ojp-sdk';
 import { Duration } from 'ojp-sdk/lib/shared/duration';
 import { StopPoint } from 'ojp-sdk/lib/trip/leg/timed-leg/stop-point';
 import { JourneyService } from 'ojp-sdk/lib/journey/journey-service';
+import CONFIG from '../config';
 
 export function createTripResponse(tripsResponse: OJP.TripsResponse) {
   const xmlContent = {
@@ -199,16 +200,18 @@ function createTimedLeg(leg: OJP.TripTimedLeg) {
             },
             'ojp:Duration': durationFormatter(trackSection.duration),
             'ojp:Length': trackSection.length,
-            'ojp:LinkProjection': {
-              'ojp:Position': trackSection.linkProjection?.coordinates.map(
-                geoPosition => {
-                  return {
-                    'siri:Longitude': geoPosition.longitude,
-                    'siri:Latitude': geoPosition.latitude,
-                  };
-                },
-              ),
-            },
+            'ojp:LinkProjection': CONFIG.WITH_LINK_PROJECTION
+              ? {
+                  'ojp:Position': trackSection.linkProjection?.coordinates.map(
+                    geoPosition => {
+                      return {
+                        'siri:Longitude': geoPosition.longitude,
+                        'siri:Latitude': geoPosition.latitude,
+                      };
+                    },
+                  ),
+                }
+              : {},
           },
         };
       }),
