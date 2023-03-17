@@ -35,6 +35,7 @@ const CONFIG = {
     API_KEY: process.env.API_KEY,
   },
   PASSIVE_SYSTEMS: passiveSystemsConfig,
+  STA_SEARCH_TWEAK: 0.52,
 } as const;
 
 export default CONFIG;

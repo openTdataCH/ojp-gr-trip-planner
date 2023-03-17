@@ -9,7 +9,6 @@ export abstract class NameToSystemMapper {
     const systems = new Set(this.getSystems(name));
     systems.add(system);
     this.nameToSystemMap.set(name, [...systems]);
-    return location;
   }
 
   public static getSystems(name: string): PASSIVE_SYSTEM[] {

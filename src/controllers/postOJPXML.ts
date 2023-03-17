@@ -65,9 +65,14 @@ async function createLocationInformationResponseFromPassiveSystems(
     Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
       return (
         await locationInformationRequest(passiveSystem, initialInput)
-      ).map(location =>
-        NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM),
-      );
+      ).map(location => {
+        location.originSystem = passiveSystem.key;
+        if (passiveSystem.key === 'STA' && location.probability) {
+          location.probability += CONFIG.STA_SEARCH_TWEAK;
+        }
+        NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM);
+        return location;
+      });
     }),
   );
   return createLocationInfoResponse(
