@@ -4,6 +4,7 @@ import { ExchangePointRequest } from '../ojp-sdk-extension/ExchangePointRequest'
 import { Place } from '../ojp-sdk-extension/Place';
 
 export abstract class ExchangePoints {
+  private static unavailableSystems: PASSIVE_SYSTEM[] = [];
   private static exchangePoints: ExchangePoint[] = [];
 
   public static async init(system1: PASSIVE_SYSTEM, system2: PASSIVE_SYSTEM) {
@@ -18,8 +19,8 @@ export abstract class ExchangePoints {
         100,
       );
     const [hashMap, places] = await Promise.all([
-      await ExchangePoints.fillHashmap(system1ExchangePointRequest),
-      await ExchangePoints.getPlaces(system2ExchangePointRequest),
+      await ExchangePoints.fillHashmap(system1ExchangePointRequest, system1),
+      await ExchangePoints.getPlaces(system2ExchangePointRequest, system2),
     ]);
 
     places.forEach(place => {
@@ -40,6 +41,7 @@ export abstract class ExchangePoints {
 
   private static async fillHashmap(
     request1: ExchangePointRequest,
+    system: PASSIVE_SYSTEM,
   ): Promise<Map<string, Place>> {
     const hashMap = new Map<string, Place>();
     try {
@@ -55,12 +57,14 @@ export abstract class ExchangePoints {
       }
     } catch (e) {
       console.error(e);
+      ExchangePoints.unavailableSystems.push(system);
     }
     return hashMap;
   }
 
   private static async getPlaces(
     request2: ExchangePointRequest,
+    system: PASSIVE_SYSTEM,
   ): Promise<Place[]> {
     const places: Place[] = [];
     try {
@@ -70,7 +74,12 @@ export abstract class ExchangePoints {
       }
     } catch (e) {
       console.error(e);
+      ExchangePoints.unavailableSystems.push(system);
     }
     return places;
+  }
+
+  public static getUnavailableSystems() {
+    return ExchangePoints.unavailableSystems;
   }
 }

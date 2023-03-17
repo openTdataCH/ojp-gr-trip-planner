@@ -29,18 +29,24 @@ export function createLocationInfoResponse(locations: pkg.Location[]) {
 }
 
 function createXMLForLocations(locations: pkg.Location[]): object[] {
-  return locations.map(location => {
-    return {
-      'ojp:Location': {
-        ...insertTopographicPlace(location),
-        ...insertStopPlace(location),
-        ...insertLocationName(location),
-        ...insertGeoPosition(location),
-        ...insertAddress(location),
-      },
-      'ojp:Complete': 'true',
-    };
-  });
+  return locations
+    .sort((a, b) => {
+      return (b.probability ?? 0) - (a.probability ?? 0);
+    })
+    .map(location => {
+      return {
+        'ojp:Location': {
+          ...insertTopographicPlace(location),
+          ...insertStopPlace(location),
+          ...insertLocationName(location),
+          ...insertGeoPosition(location),
+          ...insertAddress(location),
+        },
+        'ojp:Complete': 'true',
+        'ojp:Probability': location.probability,
+        'ojp:OriginSystem': location.originSystem,
+      };
+    });
 }
 
 function insertStopPlace(location: pkg.Location) {

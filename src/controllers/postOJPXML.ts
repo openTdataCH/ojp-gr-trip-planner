@@ -74,17 +74,18 @@ async function createLocationInformationResponseFromPassiveSystems(
 ) {
   try {
     const responseFromPassiveSystems = await Promise.all(
-      Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
-        return (
-          await locationInformationRequest(passiveSystem, initialInput)
-        ).map(location => {
-          return NameToSystemMapper.add(
-            location,
-            passiveSystem.key as PASSIVE_SYSTEM,
-          );
-        });
-      }),
-    );
+    Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+      return (
+        await locationInformationRequest(passiveSystem, initialInput)
+      ).map(location => {
+        location.originSystem = passiveSystem.key;
+        if (passiveSystem.key === 'STA' && location.probability) {
+          location.probability += CONFIG.STA_SEARCH_TWEAK;
+        }
+        NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM);
+        return location;
+      });
+    }),
     return createLocationInfoResponse(
       makeDistinctLocations(responseFromPassiveSystems.flat()),
     );
