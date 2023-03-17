@@ -67,7 +67,8 @@ function generateTripRequest(
         },
       },
       params: {
-        numberOfResults: +params['ojp:numberofresults'].pickOnlyOrThrow(),
+        numberOfResults:
+          +params['ojp:numberofresults']?.pickOnlyOrThrow() ?? 10,
         includeTrackSections:
           params['ojp:includetracksections'].pickOnlyOrThrow() === 'true',
         includeLegProjection:
