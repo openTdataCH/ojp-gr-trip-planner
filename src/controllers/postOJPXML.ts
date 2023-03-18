@@ -45,7 +45,7 @@ export const postOJPXML = async (req: Request, res: Response) => {
     } else if (serviceRequest.requestType === 'TripRequest') {
       const tripRequest = generateTripRequestForPassiveSystem(
         serviceRequest,
-        'SBB',
+        selectPassiveSystem(serviceRequest),
       );
       return res.status(200).send(await getTripResponse(tripRequest));
     }
@@ -120,12 +120,12 @@ function generateTripRequestForPassiveSystem(
   const departTimeString = originRef.departTime;
   const destinationRef = tripServiceRequest.body.destination.placeRef;
   const destination = Location.initWithStopPlaceRef(
-    String(destinationRef.stopPointRef),
+    destinationRef.stopPointRef,
     destinationRef.locationName,
   );
   const departTime = new Date(departTimeString);
   const origin = Location.initWithStopPlaceRef(
-    String(originRef.placeRef.stopPointRef),
+    originRef.placeRef.stopPointRef,
     originRef.placeRef.locationName,
   );
   const tripRequestParams = TripsRequestParams.initWithLocationsAndDate(
@@ -134,4 +134,23 @@ function generateTripRequestForPassiveSystem(
     departTime,
   );
   return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
+}
+
+function selectPassiveSystem(
+  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+): PASSIVE_SYSTEM {
+  const originRef = tripServiceRequest.body.origin.placeRef;
+  const destinationRef = tripServiceRequest.body.destination.placeRef;
+  console.log(originRef.stopPointRef);
+  console.log(destinationRef.stopPointRef);
+  const system1 = NameToSystemMapper.getSystems(
+    tripServiceRequest.body.origin.placeRef.stopPointRef,
+  );
+  const system2 = NameToSystemMapper.getSystems(
+    tripServiceRequest.body.destination.placeRef.stopPointRef,
+  );
+  console.log(system1);
+  console.log(system2);
+  if (system1 && system2 && system1 === system2) return system1;
+  throw Error();
 }

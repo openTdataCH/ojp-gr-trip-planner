@@ -44,6 +44,6 @@ type Params = {
 };
 
 type PlaceRef = {
-  stopPointRef: number;
+  stopPointRef: string;
   locationName: string;
 };

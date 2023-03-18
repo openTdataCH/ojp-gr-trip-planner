@@ -51,7 +51,7 @@ function generateTripRequest(
     body: {
       origin: {
         placeRef: {
-          stopPointRef: +placeRefOrigin.stoppointref.pickOnlyOrThrow(),
+          stopPointRef: placeRefOrigin.stoppointref.pickOnlyOrThrow(),
           locationName: placeRefOrigin['ojp:locationname']
             .pickOnlyOrThrow()
             ['ojp:text'].pickOnlyOrThrow(),
@@ -60,7 +60,7 @@ function generateTripRequest(
       },
       destination: {
         placeRef: {
-          stopPointRef: +placeRefDestination.stoppointref.pickOnlyOrThrow(),
+          stopPointRef: placeRefDestination.stoppointref.pickOnlyOrThrow(),
           locationName: placeRefDestination['ojp:locationname']
             .pickOnlyOrThrow()
             ['ojp:text'].pickOnlyOrThrow(),
