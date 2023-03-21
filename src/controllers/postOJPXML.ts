@@ -62,11 +62,24 @@ export const postOJPXML = async (req: Request, res: Response) => {
 };
 
 function makeDistinctLocations(locations: OJP.Location[]) {
-  return [
-    ...new Map(
-      locations.map(location => [location.computeLocationName(), location]),
-    ).values(),
-  ];
+  const distinctMap = new Map<string, OJP.Location>();
+  locations.forEach(location => {
+    const name = location.computeLocationName();
+    if (name) {
+      const otherLocation = distinctMap.get(name);
+      if (otherLocation === undefined) {
+        distinctMap.set(name, location);
+      } else {
+        if (location.stopPointRef && otherLocation.stopPointRef) {
+          NameToSystemMapper.addDuplicate(
+            otherLocation.stopPointRef,
+            location.stopPointRef,
+          );
+        }
+      }
+    }
+  });
+  return [...distinctMap.values()];
 }
 
 async function createLocationInformationResponseFromPassiveSystems(
@@ -141,16 +154,22 @@ function selectPassiveSystem(
 ): PASSIVE_SYSTEM {
   const originRef = tripServiceRequest.body.origin.placeRef;
   const destinationRef = tripServiceRequest.body.destination.placeRef;
-  console.log(originRef.stopPointRef);
-  console.log(destinationRef.stopPointRef);
   const system1 = NameToSystemMapper.getSystems(
     tripServiceRequest.body.origin.placeRef.stopPointRef,
   );
   const system2 = NameToSystemMapper.getSystems(
     tripServiceRequest.body.destination.placeRef.stopPointRef,
   );
-  console.log(system1);
-  console.log(system2);
   if (system1 && system2 && system1 === system2) return system1;
+  if (
+    system2 &&
+    NameToSystemMapper.getDuplicate(originRef.stopPointRef) !== undefined
+  )
+    return system2;
+  if (
+    system1 &&
+    NameToSystemMapper.getDuplicate(destinationRef.stopPointRef) !== undefined
+  )
+    return system1;
   throw Error();
 }
