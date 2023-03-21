@@ -85,9 +85,9 @@ function makeDistinctLocations(locations: OJP.Location[]) {
 async function createLocationInformationResponseFromPassiveSystems(
   initialInput: string,
 ) {
-  try {
-    const responseFromPassiveSystems = await Promise.all(
-      Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+  const responseFromPassiveSystems = await Promise.all(
+    Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+      try {
         return (
           await locationInformationRequest(passiveSystem, initialInput)
         ).map(location => {
@@ -98,15 +98,15 @@ async function createLocationInformationResponseFromPassiveSystems(
           NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM);
           return location;
         });
-      }),
-    );
-    return createLocationInfoResponse(
-      makeDistinctLocations(responseFromPassiveSystems.flat()),
-    );
-  } catch (e) {
-    console.error(e);
-  }
-  return 'error';
+      } catch (e) {
+        console.error(e);
+        return [];
+      }
+    }),
+  );
+  return createLocationInfoResponse(
+    makeDistinctLocations(responseFromPassiveSystems.flat()),
+  );
 }
 
 async function getTripResponse(tripRequest: OJP.TripRequest): Promise<string> {
