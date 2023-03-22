@@ -1,13 +1,20 @@
-# ojp-gr-trip-planner
+# OJP GR Trip Planner
 <br>
 
 <p align="center">
-    <img width="250px" src="https://user-images.githubusercontent.com/50701501/104827248-f88a1800-585b-11eb-985e-5e31dbb0b913.jpg"><br/>
+    <img width="250px" src="https://user-images.githubusercontent.com/50701501/104827248-f88a1800-585b-11eb-985e-5e31dbb0b913.jpg" alt='technic-overview'><br/>
 </p>
 <p align="center">
-  <a href="https://lerna.js.org/"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg" alt="Maintained with Lerna"></a>
   <a href="/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
 </p>
+
+This is the source-code repository used for developing the OJP GR Trip Planner.
+
+## Quick Resources
+
+- https://opentdatach.github.io/ojp-demo-app/ - The Demonstrator to see live functionality (Radiobutton GR Test)
+- [docs](./docs/README.md) - In-Depth documentation of the project
+- [GitHub Repo](https://github.com/openTdataCH/ojp-gr-trip-planner) - Repository to codebase
 
 ## Prerequisites
 
@@ -22,51 +29,19 @@
 
 ## Config
 
-- Copy `.env.example` a file at the root of the application.
 - Add or modify specific variables and update it according to your need.
-
-```bash
- cp .env.example .env
-```
 
 > Check the `config` folder to customize your settings (`/src/config`)
 
-<br>
-<br>
-
-## Alias @
-
-To make paths clean and ease to access `@` is setup up for `/src` path
-
-```javascript
-// BEFORE
-import config from './config';
-import routes from './routes';
-
-// NOW
-import config from '@/config';
-import routes from '@/routes';
-```
-
-> You can customize this setup:
-> `/tsconfig.json` > compilerOptions.paths
-> `/eslintrc.yml` > rules.settings.alias.map
-
-<br>
-<br>
-
 ## Local Development
 
-Run the server locally. It will be run with Nodemon and ready to serve on port `8080` (unless you specify it on your `.env`)
+Run the server locally. It will be run with Nodemon and ready to serve on port `8080` (unless you specify it i `/src/config/index.ts`)
 
 ```bash
- yarn start # or npm start
+ yarn dev # or npm dev
 ```
 
 > Check [`package.json`](https://github.com/filoscoder/tenstack-starter/blob/master/package.json) to see more "scripts"
-
-<br>
-<br>
 
 ## Production
 
@@ -81,3 +56,8 @@ Then, use [`pm2`](https://github.com/Unitech/pm2) to start the application as a 
 ```bash
  yarn service:start # or npm run service:start
 ```
+## License
+
+The project is released under a [MIT license](./LICENSE).
+
+Copyright (c) 2021 - 2023 Open Data Platform Mobility Switzerland - [opentransportdata.swiss](https://opentransportdata.swiss/en/).
