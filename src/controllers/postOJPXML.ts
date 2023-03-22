@@ -45,7 +45,7 @@ export const postOJPXML = async (req: Request, res: Response) => {
     } else if (serviceRequest.requestType === 'TripRequest') {
       const tripRequest = generateTripRequestForPassiveSystem(
         serviceRequest,
-        'SBB',
+        selectPassiveSystem(serviceRequest),
       );
       return res.status(200).send(await getTripResponse(tripRequest));
     }
@@ -62,19 +62,32 @@ export const postOJPXML = async (req: Request, res: Response) => {
 };
 
 function makeDistinctLocations(locations: OJP.Location[]) {
-  return [
-    ...new Map(
-      locations.map(location => [location.computeLocationName(), location]),
-    ).values(),
-  ];
+  const distinctMap = new Map<string, OJP.Location>();
+  locations.forEach(location => {
+    const name = location.computeLocationName();
+    if (name) {
+      const otherLocation = distinctMap.get(name);
+      if (otherLocation === undefined) {
+        distinctMap.set(name, location);
+      } else {
+        if (location.stopPointRef && otherLocation.stopPointRef) {
+          NameToSystemMapper.addDuplicate(
+            otherLocation.stopPointRef,
+            location.stopPointRef,
+          );
+        }
+      }
+    }
+  });
+  return [...distinctMap.values()];
 }
 
 async function createLocationInformationResponseFromPassiveSystems(
   initialInput: string,
 ) {
-  try {
-    const responseFromPassiveSystems = await Promise.all(
-      Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+  const responseFromPassiveSystems = await Promise.all(
+    Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
+      try {
         return (
           await locationInformationRequest(passiveSystem, initialInput)
         ).map(location => {
@@ -85,15 +98,15 @@ async function createLocationInformationResponseFromPassiveSystems(
           NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM);
           return location;
         });
-      }),
-    );
-    return createLocationInfoResponse(
-      makeDistinctLocations(responseFromPassiveSystems.flat()),
-    );
-  } catch (e) {
-    console.error(e);
-  }
-  return 'error';
+      } catch (e) {
+        console.error(e);
+        return [];
+      }
+    }),
+  );
+  return createLocationInfoResponse(
+    makeDistinctLocations(responseFromPassiveSystems.flat()),
+  );
 }
 
 async function getTripResponse(tripRequest: OJP.TripRequest): Promise<string> {
@@ -120,12 +133,12 @@ function generateTripRequestForPassiveSystem(
   const departTimeString = originRef.departTime;
   const destinationRef = tripServiceRequest.body.destination.placeRef;
   const destination = Location.initWithStopPlaceRef(
-    String(destinationRef.stopPointRef),
+    destinationRef.stopPointRef,
     destinationRef.locationName,
   );
   const departTime = new Date(departTimeString);
   const origin = Location.initWithStopPlaceRef(
-    String(originRef.placeRef.stopPointRef),
+    originRef.placeRef.stopPointRef,
     originRef.placeRef.locationName,
   );
   const tripRequestParams = TripsRequestParams.initWithLocationsAndDate(
@@ -134,4 +147,29 @@ function generateTripRequestForPassiveSystem(
     departTime,
   );
   return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
+}
+
+function selectPassiveSystem(
+  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+): PASSIVE_SYSTEM {
+  const originRef = tripServiceRequest.body.origin.placeRef;
+  const destinationRef = tripServiceRequest.body.destination.placeRef;
+  const system1 = NameToSystemMapper.getSystems(
+    tripServiceRequest.body.origin.placeRef.stopPointRef,
+  );
+  const system2 = NameToSystemMapper.getSystems(
+    tripServiceRequest.body.destination.placeRef.stopPointRef,
+  );
+  if (system1 && system2 && system1 === system2) return system1;
+  if (
+    system2 &&
+    NameToSystemMapper.getDuplicate(originRef.stopPointRef) !== undefined
+  )
+    return system2;
+  if (
+    system1 &&
+    NameToSystemMapper.getDuplicate(destinationRef.stopPointRef) !== undefined
+  )
+    return system1;
+  throw Error();
 }

@@ -22,7 +22,6 @@ export function createLocationInfoResponse(locations: pkg.Location[]) {
     },
   };
 
-  console.log(JSON.stringify(xmlContent));
   const xmlTemplate = xmlbuilder.create(xmlContent);
 
   return xmlTemplate.toString({ prettyPrint: true });
