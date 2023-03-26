@@ -139,7 +139,7 @@ function createTripLeg(legs: OJP.TripLeg[]) {
 function createSpecificLeg(leg: OJP.TripLeg) {
   switch (leg.legType) {
     case 'ContinousLeg':
-      return createContinousLeg(leg as TripContinousLeg);
+      return createContinuousLeg(leg as TripContinousLeg);
     case 'TimedLeg':
       return createTimedLeg(leg as TripTimedLeg);
     case 'TransferLeg':
@@ -147,9 +147,80 @@ function createSpecificLeg(leg: OJP.TripLeg) {
   }
 }
 
-function createContinousLeg(leg: TripContinousLeg) {
-  console.log(leg);
-  return {};
+function createContinuousLeg(leg: TripContinousLeg) {
+  return {
+    'ojp:TripContinuousLeg': {
+      'ojp:LegStart': {
+        ...insertLegStopPoint(leg.fromLocation, 'ojp:LocationName'),
+      },
+      'ojp:LegEnd': {
+        ...insertLegStopPoint(leg.toLocation, 'ojp:LocationName'),
+      },
+      'ojp:Duration': durationFormatter(leg.legDuration),
+      'ojp:Length': leg.legDistance,
+      'ojp:Service': {
+        'ojp:IndividualMode': leg.legTransportMode,
+      },
+      'ojp:LegTrack': leg.legTrack?.trackSections.map(trackSection => {
+        return {
+          'ojp:TrackSection': {
+            'ojp:TrackStart': {
+              ...insertLegStopPoint(
+                trackSection.fromLocation,
+                'ojp:LocationName',
+              ),
+            },
+            'ojp:TrackEnd': {
+              ...insertLegStopPoint(
+                trackSection.toLocation,
+                'ojp:LocationName',
+              ),
+            },
+            'ojp:Duration': durationFormatter(trackSection.duration),
+            'ojp:Length': trackSection.length,
+            'ojp:LinkProjection': CONFIG.WITH_LINK_PROJECTION
+              ? {
+                  'ojp:Position': trackSection.linkProjection?.coordinates.map(
+                    geoPosition => {
+                      return {
+                        'siri:Longitude': geoPosition.longitude,
+                        'siri:Latitude': geoPosition.latitude,
+                      };
+                    },
+                  ),
+                }
+              : {},
+          },
+        };
+      }),
+      'ojp:PathGuidance': {
+        'ojp:PathGuidanceSection': leg.pathGuidance?.sections.map(section => {
+          return {
+            'ojp:TrackSection': {
+              'ojp:LinkProjection': CONFIG.WITH_LINK_PROJECTION
+                ? {
+                    'ojp:Position':
+                      section.trackSection?.linkProjection?.coordinates.map(
+                        geoPosition => {
+                          return {
+                            'siri:Longitude': geoPosition.longitude,
+                            'siri:Latitude': geoPosition.latitude,
+                          };
+                        },
+                      ),
+                  }
+                : {},
+              'ojp:RoadName': section.trackSection?.roadName,
+              'ojp:Duration': section.trackSection?.duration,
+              'ojp:Length': section.trackSection?.length,
+            },
+            'ojp:GuidanceAdvice': section.guidanceAdvice,
+            'ojp:TurnAction': section.turnAction,
+          };
+        }),
+      },
+    },
+  };
 }
 
 function createTransferLeg(leg: TripContinousLeg) {
