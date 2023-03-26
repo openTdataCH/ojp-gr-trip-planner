@@ -35,7 +35,15 @@ This diagram shows the shortened workflow if someone wants to drive from system 
    and the best ones will e sent back to the demonstrator.
    
 ### OJP SDK
-TBD
+For the ojp demonstrator a library was developed to handle the calls to the backend systems. For simplticitity and of 
+time reasons, this library was also used for this project. Because it is written for the frontend, it can only be used 
+to make the calls to the passive systems and get ts-objects back. Therefore, the incoming request is casted from xml to 
+ts-objects, with these objects and the library the passive systems are called and ts-objects will come back. Afterwards 
+this will be casted to xml again. For sure this needs time to do. Also, there are two more drawbacks. First it is 
+not that easy to get all the needed values from the passive systems and it is not easily possible to add attributes to 
+the used classes. Also, there are some calls there are not needed ion the frontend like the ExchangePointRequest. Those 
+requests are now, in this project, in the ojp-sdk-extension folder. It is written like the ojp-sdk and can be integrated 
+into it easily.
 
 
 
