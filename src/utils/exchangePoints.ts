@@ -82,4 +82,8 @@ export abstract class ExchangePoints {
   public static getUnavailableSystems() {
     return ExchangePoints.unavailableSystems;
   }
+
+  public static getExchangePoints() {
+    return ExchangePoints.exchangePoints;
+  }
 }
