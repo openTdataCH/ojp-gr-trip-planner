@@ -1,13 +1,11 @@
-import OJP, { Location, StageConfig } from 'ojp-sdk';
-
-const { LocationInformationRequest } = OJP;
+import * as OJP from 'ojp-sdk';
 
 export async function locationInformationRequest(
-  passiveSystem: StageConfig,
+  passiveSystem: OJP.StageConfig,
   initialInput: string,
-): Promise<Location[]> {
+): Promise<OJP.Location[]> {
   const locationInformationRequest1 =
-    LocationInformationRequest.initWithLocationName(
+    OJP.LocationInformationRequest.initWithLocationName(
       passiveSystem,
       initialInput,
     );
