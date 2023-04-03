@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import * as xml2js from 'xml2js';
 import jsdom from 'jsdom';
-import OJP from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 import {
   createLocationInfoResponse,
   NameToSystemMapper,
@@ -14,8 +14,6 @@ import { locationInformationRequest } from '../passiveSystems/locationInformatio
 import { PASSIVE_SYSTEM, passiveSystemsConfig } from '../config/passiveSystems';
 import { createTripResponse } from '../helpers/createTripResponse';
 import { ServiceRequest } from '../types/serviceRequests';
-
-const { Location, TripLocationPoint, TripsRequestParams } = OJP;
 
 const { JSDOM } = jsdom;
 global.DOMParser = new JSDOM().window.DOMParser;
@@ -132,18 +130,18 @@ function generateTripRequestForPassiveSystem(
   const originRef = tripServiceRequest.body.origin;
   const departTimeString = originRef.departTime;
   const destinationRef = tripServiceRequest.body.destination.placeRef;
-  const destination = Location.initWithStopPlaceRef(
+  const destination = OJP.Location.initWithStopPlaceRef(
     destinationRef.stopPointRef,
     destinationRef.locationName,
   );
   const departTime = new Date(departTimeString);
-  const origin = Location.initWithStopPlaceRef(
+  const origin = OJP.Location.initWithStopPlaceRef(
     originRef.placeRef.stopPointRef,
     originRef.placeRef.locationName,
   );
-  const tripRequestParams = TripsRequestParams.initWithLocationsAndDate(
-    new TripLocationPoint(origin),
-    new TripLocationPoint(destination),
+  const tripRequestParams = OJP.TripsRequestParams.initWithLocationsAndDate(
+    new OJP.TripLocationPoint(origin),
+    new OJP.TripLocationPoint(destination),
     departTime,
   );
   return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);

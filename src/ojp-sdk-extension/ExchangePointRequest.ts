@@ -1,16 +1,14 @@
-import OJP, { StageConfig } from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 import { ExchangePointRequestParams } from './ExchangePointRequestParams';
 import { XPathOJP } from './xpath-ojp';
 import { Place } from './Place';
 
-const { OJPBaseRequest } = OJP;
-
-export class ExchangePointRequest extends OJPBaseRequest {
+export class ExchangePointRequest extends OJP.OJPBaseRequest {
   public requestParams: ExchangePointRequestParams;
   private finished = false;
 
   constructor(
-    stageConfig: StageConfig,
+    stageConfig: OJP.StageConfig,
     requestParams: ExchangePointRequestParams,
   ) {
     super(stageConfig);
@@ -22,7 +20,7 @@ export class ExchangePointRequest extends OJPBaseRequest {
   }
 
   public static initWithNumberOfResults(
-    stageConfig: StageConfig,
+    stageConfig: OJP.StageConfig,
     numberOfResults: number,
   ): ExchangePointRequest {
     const requestParams = {
