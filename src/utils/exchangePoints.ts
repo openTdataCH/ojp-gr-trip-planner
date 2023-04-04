@@ -37,7 +37,6 @@ export abstract class ExchangePoints {
       }
     });
     ExchangePoints.makeDistinctExchangePoints();
-    console.log(ExchangePoints.exchangePoints);
     console.log('Mapping EP completed');
   }
 
