@@ -1,8 +1,6 @@
-import OJP from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 import { XPathOJP } from './xpath-ojp';
 import { StopPlace } from './stop-place';
-
-const { GeoPosition } = OJP;
 
 export class Place {
   public locationName: string | null;
@@ -33,7 +31,7 @@ export class Place {
     place.locationName = locationName;
     place.stopPointRef = XPathOJP.queryText('siri:StopPointRef', contextNode);
     place.stopPlace = StopPlace.initFromContextNode(contextNode);
-    place.geoPosition = GeoPosition.initFromContextNode(contextNode);
+    place.geoPosition = OJP.GeoPosition.initFromContextNode(contextNode);
 
     if (place.stopPointRef === null && place.stopPlace?.stopPlaceRef) {
       place.stopPointRef = place.stopPlace.stopPlaceRef;

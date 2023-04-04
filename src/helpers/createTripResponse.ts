@@ -1,5 +1,5 @@
 import * as xmlbuilder from 'xmlbuilder2';
-import OJP, { TripContinousLeg, TripTimedLeg } from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 import { Duration } from 'ojp-sdk/lib/shared/duration';
 import { StopPoint } from 'ojp-sdk/lib/trip/leg/timed-leg/stop-point';
 import { JourneyService } from 'ojp-sdk/lib/journey/journey-service';
@@ -139,15 +139,15 @@ function createTripLeg(legs: OJP.TripLeg[]) {
 function createSpecificLeg(leg: OJP.TripLeg) {
   switch (leg.legType) {
     case 'ContinousLeg':
-      return createContinuousLeg(leg as TripContinousLeg);
+      return createContinuousLeg(leg as OJP.TripContinousLeg);
     case 'TimedLeg':
-      return createTimedLeg(leg as TripTimedLeg);
+      return createTimedLeg(leg as OJP.TripTimedLeg);
     case 'TransferLeg':
-      return createTransferLeg(leg as TripContinousLeg);
+      return createTransferLeg(leg as OJP.TripContinousLeg);
   }
 }
 
-function createContinuousLeg(leg: TripContinousLeg) {
+function createContinuousLeg(leg: OJP.TripContinousLeg) {
   return {
     'ojp:TripContinuousLeg': {
       'ojp:LegStart': {
@@ -223,7 +223,7 @@ function createContinuousLeg(leg: TripContinousLeg) {
   };
 }
 
-function createTransferLeg(leg: TripContinousLeg) {
+function createTransferLeg(leg: OJP.TripContinousLeg) {
   return {
     'ojp:TransferLeg': {
       'ojp:TransferMode': leg.legTransportMode,

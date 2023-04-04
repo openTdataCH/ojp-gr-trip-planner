@@ -2,8 +2,7 @@
 import { Request, Response } from 'express';
 import * as xml2js from 'xml2js';
 import jsdom from 'jsdom';
-import OJP, { TripsResponse } from 'ojp-sdk';
-import { TripStats } from 'ojp-sdk/lib/types/trip-stats';
+import * as OJP from 'ojp-sdk';
 import {
   createLocationInfoResponse,
   NameToSystemMapper,
@@ -17,8 +16,6 @@ import { createTripResponse } from '../helpers/createTripResponse';
 import { ServiceRequest } from '../types/serviceRequests';
 import { ExchangePoints } from '../utils/exchangePoints';
 import { ExchangePoint } from '../types/ExchangePoint';
-
-const { Location, TripLocationPoint, TripsRequestParams, Trip } = OJP;
 
 const { JSDOM } = jsdom;
 global.DOMParser = new JSDOM().window.DOMParser;
