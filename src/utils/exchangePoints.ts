@@ -36,6 +36,8 @@ export abstract class ExchangePoints {
         }
       }
     });
+    ExchangePoints.makeDistinctExchangePoints();
+    console.log(ExchangePoints.exchangePoints);
     console.log('Mapping EP completed');
   }
 
@@ -77,6 +79,44 @@ export abstract class ExchangePoints {
       ExchangePoints.unavailableSystems.push(system);
     }
     return places;
+  }
+
+  private static makeDistinctExchangePoints() {
+    ExchangePoints.getCorrectPlacesOrder().forEach(place => {
+      const distinctMap = new Map<string, ExchangePoint>();
+      const listOfUndefined: ExchangePoint[] = [];
+      ExchangePoints.exchangePoints.forEach(ep => {
+        const stopPointRef = ep[place].stopPointRef;
+        if (stopPointRef) {
+          const otherEP = distinctMap.get(stopPointRef);
+          const otherPlace = place === 'place1' ? 'place2' : 'place1';
+          if (
+            otherEP === undefined ||
+            (otherEP[otherPlace].stopPointRef?.length ?? 0) >
+              (ep[otherPlace].stopPointRef?.length ?? 0)
+          ) {
+            distinctMap.set(stopPointRef, ep);
+          }
+        } else {
+          listOfUndefined.push(ep);
+        }
+      });
+      ExchangePoints.exchangePoints = listOfUndefined.concat(
+        ...distinctMap.values(),
+      );
+    });
+  }
+
+  private static getCorrectPlacesOrder(): ('place1' | 'place2')[] {
+    const firstEP = ExchangePoints.exchangePoints[0];
+    if (
+      firstEP.place1.stopPointRef &&
+      firstEP.place2.stopPointRef &&
+      firstEP.place1.stopPointRef.length > firstEP.place2.stopPointRef.length
+    ) {
+      return ['place2', 'place1'];
+    }
+    return ['place1', 'place2'];
   }
 
   public static getUnavailableSystems() {
