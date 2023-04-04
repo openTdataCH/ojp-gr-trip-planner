@@ -109,3 +109,6 @@ dist
 # New added
 /src/filesToDelete/
 ./build/
+
+package-lock.json
+yarn.lock
