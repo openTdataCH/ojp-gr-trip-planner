@@ -11,11 +11,11 @@ import {
 import { XMLRequest } from '../types/xmlRequest';
 import CONFIG from '../config';
 import { locationInformationRequest } from '../passiveSystems/locationInformationRequest';
-import { PASSIVE_SYSTEM, passiveSystemsConfig } from '../config/passiveSystems';
+import { PASSIVE_SYSTEM } from '../config/passiveSystems';
 import { createTripResponse } from '../helpers/createTripResponse';
 import { ServiceRequest } from '../types/serviceRequests';
-import { ExchangePoints } from '../utils/exchangePoints';
-import { ExchangePoint } from '../types/ExchangePoint';
+import { InterRegionTripAtStart } from '../helpers/tripRequest/InterRegionTripAtStart';
+import { generateTripRequestForPassiveSystem } from '../helpers/tripRequest/regionInternalTrip';
 
 const { JSDOM } = jsdom;
 global.DOMParser = new JSDOM().window.DOMParser;
@@ -149,146 +149,14 @@ async function generateInterSystemTripResponse(
   system1: PASSIVE_SYSTEM,
   system2: PASSIVE_SYSTEM,
 ) {
-  const tripsToExchangePoints: {
-    tripResponse: OJP.TripsResponse;
-    exchangePoint: ExchangePoint;
-  }[] = (
-    await Promise.all(
-      ExchangePoints.getExchangePoints().map(async exchangePoint => {
-        try {
-          const place = exchangePoint.getPlaceForSystem(system1);
-          if (place && place.stopPointRef && place.locationName) {
-            const tripRequest = generateTripRequestForPassiveSystem(
-              tripServiceRequest,
-              system1,
-              OJP.Location.initWithStopPlaceRef(
-                place.stopPointRef,
-                place.locationName,
-              ),
-            );
-            return {
-              tripResponse: await getTripResponse(tripRequest),
-              exchangePoint,
-            };
-          }
-          return null;
-        } catch (e) {
-          console.log(e);
-          return null;
-        }
-      }),
-    )
-  ).flatMap(f => (f ? [f] : []));
-  const bestTrips = findBestTrips(tripsToExchangePoints);
-  const tripsFromExchangePoints = (
-    await Promise.all(
-      bestTrips.map(async tripWrapper => {
-        try {
-          const place = tripWrapper.exchangePoint.getPlaceForSystem(system2);
-          const arrivalTimeTripBefore = tripWrapper.trip.computeArrivalTime();
-          if (
-            place &&
-            place.stopPointRef &&
-            place.locationName &&
-            arrivalTimeTripBefore
-          ) {
-            const tripRequest = generateTripRequestForPassiveSystem(
-              tripServiceRequest,
-              system2,
-              undefined,
-              OJP.Location.initWithStopPlaceRef(
-                place.stopPointRef,
-                place.locationName,
-              ),
-              // 3 minutes min to change train
-              new Date(arrivalTimeTripBefore.getTime() + 3 * 60000),
-            );
-            return {
-              tripResponse: await getTripResponse(tripRequest),
-              ...tripWrapper,
-            };
-          }
-          return null;
-        } catch (e) {
-          console.log(e);
-          return null;
-        }
-      }),
-    )
-  ).flatMap(f => (f ? [f] : []));
-  tripsFromExchangePoints.slice(0, 2).forEach(tripWrapper => {
-    console.log('Origin to EP');
-    console.log(tripWrapper.trip);
-    console.log('Arrival Time: ' + tripWrapper.trip.computeArrivalTime());
-    console.log('EP');
-    console.log(tripWrapper.exchangePoint);
-    console.log('Possible second leg');
-    console.log(tripWrapper.tripResponse.trips[0]);
-  });
-  const firstTripWarapper = tripsFromExchangePoints[0];
-  const tripStats = {
-    duration: firstTripWarapper.trip.stats.duration.plus(
-      firstTripWarapper.tripResponse.trips[1].stats.duration,
-    ),
-    distanceMeters:
-      firstTripWarapper.trip.stats.distanceMeters +
-      firstTripWarapper.tripResponse.trips[1].stats.distanceMeters,
-    transferNo:
-      firstTripWarapper.trip.stats.transferNo +
-      firstTripWarapper.tripResponse.trips[1].stats.transferNo +
-      1,
-    startDatetime: firstTripWarapper.trip.stats.startDatetime,
-    endDatetime: firstTripWarapper.tripResponse.trips[1].stats.endDatetime,
-  };
-  const trip = new OJP.Trip(
-    '0',
-    [
-      ...firstTripWarapper.trip.legs,
-      ...firstTripWarapper.tripResponse.trips[1].legs,
-    ],
-    tripStats,
+  const tripAtStart = new InterRegionTripAtStart(
+    tripServiceRequest,
+    system1,
+    system2,
   );
-  return {
-    contextLocations: [
-      ...tripsToExchangePoints[firstTripWarapper.tripsResponsesIndex]
-        .tripResponse.contextLocations,
-      ...firstTripWarapper.tripResponse.contextLocations,
-    ],
-    hasValidResponse: true,
-    trips: [trip],
-    responseXMLText: '',
-  } as OJP.TripsResponse;
-}
-
-function generateTripRequestForPassiveSystem(
-  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
-  system: PASSIVE_SYSTEM,
-  destinationInput?: OJP.Location | undefined,
-  originInput?: OJP.Location | undefined,
-  departTimeInput?: Date | undefined,
-) {
-  const originRef = tripServiceRequest.body.origin;
-  const departTimeString = originRef.departTime;
-  const destinationRef = tripServiceRequest.body.destination.placeRef;
-  const destination =
-    destinationInput ??
-    OJP.Location.initWithStopPlaceRef(
-      destinationRef.stopPointRef,
-      destinationRef.locationName,
-    );
-  const departTime = departTimeInput ?? new Date(departTimeString);
-  const origin =
-    originInput ??
-    OJP.Location.initWithStopPlaceRef(
-      originRef.placeRef.stopPointRef,
-      originRef.placeRef.locationName,
-    );
-  const tripRequestParams = OJP.TripsRequestParams.initWithLocationsAndDate(
-    new OJP.TripLocationPoint(origin),
-    new OJP.TripLocationPoint(destination),
-    departTime,
-  );
-  return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
+  const tripAtEPs = await tripAtStart.selectExchangePointsAndTripsToThem();
+  const tripAtDestination = await tripAtEPs.findBestTrip();
+  return tripAtDestination.getTripResponse();
 }
 
 function selectPassiveSystems(
@@ -303,30 +171,4 @@ function selectPassiveSystems(
   if (system1 && system2 && system1 === system2) return [system1];
   if (system1 && system2) return [system1, system2];
   throw new Error('One system is not defined');
-}
-
-function findBestTrips(
-  tripsResponses: {
-    tripResponse: OJP.TripsResponse;
-    exchangePoint: ExchangePoint;
-  }[],
-  limit = 5,
-) {
-  return tripsResponses
-    .flatMap((tripsResponse, tripsResponsesIndex) =>
-      tripsResponse.tripResponse.trips.map((trip, tripsResponseIndex) => {
-        return {
-          trip,
-          exchangePoint: tripsResponse.exchangePoint,
-          tripsResponsesIndex,
-          tripsResponseIndex,
-        };
-      }),
-    )
-    .sort(
-      (trip1, trip2) =>
-        (trip1.trip.computeArrivalTime()?.getTime() ?? 0) -
-        (trip2.trip.computeArrivalTime()?.getTime() ?? 0),
-    )
-    .slice(0, limit);
 }
