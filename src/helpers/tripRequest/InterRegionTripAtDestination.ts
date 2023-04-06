@@ -77,9 +77,20 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
           startDatetime: tripWrapper.trip.stats.startDatetime,
           endDatetime: tripWrapper.tripResponse.trips[0].stats.endDatetime,
         };
+        const intermediateLeg = new OJP.TripContinousLeg(
+          'TransferLeg',
+          -1,
+          20,
+          tripWrapper.trip.legs[tripWrapper.trip.legs.length - 1].toLocation,
+          tripWrapper.tripResponse.trips[0].legs[0].fromLocation,
+        );
         const trip = new OJP.Trip(
           tripWrapper.trip.id + '::' + tripWrapper.tripResponse.trips[0].id,
-          [...tripWrapper.trip.legs, ...tripWrapper.tripResponse.trips[0].legs],
+          [
+            ...tripWrapper.trip.legs,
+            intermediateLeg,
+            ...tripWrapper.tripResponse.trips[0].legs,
+          ],
           tripStats,
         );
         return {
