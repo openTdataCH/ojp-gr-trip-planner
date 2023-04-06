@@ -91,7 +91,11 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
           }
         }),
       )
-    ).flatMap(f => (f ? [f] : []));
+    ).flatMap(f =>
+      f && f.tripResponse.trips.length > 0 && f.tripResponse.trips[0]
+        ? [f]
+        : [],
+    );
     return new InterRegionTripAtDestination(
       this.tripServiceRequest,
       this.system1,
