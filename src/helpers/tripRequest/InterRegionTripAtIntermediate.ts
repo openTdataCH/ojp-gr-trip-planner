@@ -16,7 +16,7 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
     tripsResponsesIndex: number;
     tripsResponseIndex: number;
   }[];
-  private tripsToExchangePoints: {
+  private readonly tripsToExchangePoints: {
     tripResponse: OJP.TripsResponse;
     exchangePoint: ExchangePoint;
   }[];
@@ -67,19 +67,18 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
                 new Date(arrivalTimeTripBefore.getTime() + 3 * 60000),
               );
               const tripResponse = await getTripResponse(tripRequest);
+              const filteredTrips = tripResponse.trips.filter(trip => {
+                return InterRegionTripAtIntermediate.departureIsMin3MinsEarlierThanArrival(
+                  trip,
+                  arrivalTimeTripBefore,
+                );
+              });
               return {
                 tripResponse: {
                   responseXMLText: tripResponse.responseXMLText,
                   contextLocations: tripResponse.contextLocations,
                   hasValidResponse: tripResponse.hasValidResponse,
-                  trips: [
-                    tripResponse.trips.filter(trip => {
-                      return (
-                        (trip.computeDepartureTime()?.getTime() ?? 0) >
-                        arrivalTimeTripBefore.getTime() + 3 * 60000
-                      );
-                    })[0],
-                  ],
+                  trips: [filteredTrips[0]],
                 },
                 ...tripWrapper,
               };
@@ -102,6 +101,16 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
       this.system2,
       this.tripsToExchangePoints,
       tripsFromExchangePoints,
+    );
+  }
+
+  private static departureIsMin3MinsEarlierThanArrival(
+    trip: OJP.Trip,
+    arrivalTimeTripBefore: Date,
+  ): boolean {
+    return (
+      (trip.computeDepartureTime()?.getTime() ?? 0) >
+      arrivalTimeTripBefore.getTime() + 3 * 60000
     );
   }
 }
