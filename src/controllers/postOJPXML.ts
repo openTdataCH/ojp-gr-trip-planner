@@ -72,27 +72,6 @@ export const postOJPXML = async (req: Request, res: Response) => {
   return res.status(200).send(xml);
 };
 
-function makeDistinctLocations(locations: OJP.Location[]) {
-  const distinctMap = new Map<string, OJP.Location>();
-  locations.forEach(location => {
-    const name = location.computeLocationName();
-    if (name) {
-      const otherLocation = distinctMap.get(name);
-      if (otherLocation === undefined) {
-        distinctMap.set(name, location);
-      } else {
-        if (location.stopPointRef && otherLocation.stopPointRef) {
-          NameToSystemMapper.addDuplicate(
-            otherLocation.stopPointRef,
-            location.stopPointRef,
-          );
-        }
-      }
-    }
-  });
-  return [...distinctMap.values()];
-}
-
 async function createLocationInformationResponseFromPassiveSystems(
   initialInput: string,
 ) {
@@ -115,9 +94,7 @@ async function createLocationInformationResponseFromPassiveSystems(
       }
     }),
   );
-  return createLocationInfoResponse(
-    makeDistinctLocations(responseFromPassiveSystems.flat()),
-  );
+  return createLocationInfoResponse(responseFromPassiveSystems.flat());
 }
 
 async function getTripResponse(
