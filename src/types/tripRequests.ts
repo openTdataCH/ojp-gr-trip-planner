@@ -22,7 +22,6 @@ export type indexedTripWrapper = {
   trip: OJP.Trip;
   exchangePoint: ExchangePoint;
   tripsResponsesIndex: number;
-  tripsResponseIndex: number;
 };
 
 export type completeTripWrapper = {

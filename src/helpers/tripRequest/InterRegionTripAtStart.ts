@@ -49,7 +49,7 @@ export class InterRegionTripAtStart extends InterRegionTrip {
       this.system1,
       this.system2,
       bestTrips,
-      tripsToExchangePointsWrappers,
+      tripsToExchangePointsWrappers.map(t => t.tripResponse.contextLocations),
     );
   }
 
@@ -73,15 +73,14 @@ export class InterRegionTripAtStart extends InterRegionTrip {
   }
 
   private indexTripsToExchangePoint(
-    tripsResponse: tripsToExchangePointsWrapper,
+    tripsToEPWrapper: tripsToExchangePointsWrapper,
     tripsResponsesIndex: number,
   ) {
-    return tripsResponse.tripResponse.trips.map((trip, tripsResponseIndex) => {
+    return tripsToEPWrapper.tripResponse.trips.map(trip => {
       return {
         trip,
-        exchangePoint: tripsResponse.exchangePoint,
+        exchangePoint: tripsToEPWrapper.exchangePoint,
         tripsResponsesIndex,
-        tripsResponseIndex,
       };
     });
   }

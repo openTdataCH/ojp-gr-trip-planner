@@ -6,7 +6,6 @@ import {
   indexedTripWrapper,
   isTripReqPlace,
   tripReqPlace,
-  tripsToExchangePointsWrapper,
 } from '../../types/tripRequests';
 import { InterRegionTrip } from './interRegionTrip';
 import { InterRegionTripAtDestination } from './InterRegionTripAtDestination';
@@ -17,17 +16,17 @@ import {
 
 export class InterRegionTripAtIntermediate extends InterRegionTrip {
   private bestTrips: indexedTripWrapper[];
-  private readonly tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[];
+  private readonly contextLocations: OJP.Location[][];
   public constructor(
     tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
     bestTrips: indexedTripWrapper[],
-    tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[],
+    contextLocations: OJP.Location[][],
   ) {
     super(tripServiceRequest, system1, system2);
     this.bestTrips = bestTrips;
-    this.tripsToExchangePointsWrappers = tripsToExchangePointsWrappers;
+    this.contextLocations = contextLocations;
   }
 
   public async findBestTrip(): Promise<InterRegionTripAtDestination> {
@@ -62,7 +61,7 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
       this.tripServiceRequest,
       this.system1,
       this.system2,
-      this.tripsToExchangePointsWrappers,
+      this.contextLocations,
       completeTripWrappers,
     );
   }
