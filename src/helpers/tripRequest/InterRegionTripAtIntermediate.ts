@@ -1,7 +1,13 @@
 import * as OJP from 'ojp-sdk';
-import { ExchangePoint } from '../../types/ExchangePoint';
-import { ServiceRequest } from '../../types/serviceRequests';
+import { TripServiceRequest } from '../../types/serviceRequests';
 import { PASSIVE_SYSTEM } from '../../config/passiveSystems';
+import {
+  completeTripWrapper,
+  indexedTripWrapper,
+  isTripReqPlace,
+  tripReqPlace,
+  tripsToExchangePointsWrapper,
+} from '../../types/tripRequests';
 import { InterRegionTrip } from './interRegionTrip';
 import { InterRegionTripAtDestination } from './InterRegionTripAtDestination';
 import {
@@ -10,38 +16,22 @@ import {
 } from './regionInternalTrip';
 
 export class InterRegionTripAtIntermediate extends InterRegionTrip {
-  private bestTrips: {
-    trip: OJP.Trip;
-    exchangePoint: ExchangePoint;
-    tripsResponsesIndex: number;
-    tripsResponseIndex: number;
-  }[];
-  private readonly tripsToExchangePoints: {
-    tripResponse: OJP.TripsResponse;
-    exchangePoint: ExchangePoint;
-  }[];
+  private bestTrips: indexedTripWrapper[];
+  private readonly tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[];
   public constructor(
-    tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+    tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
-    bestTrips: {
-      trip: OJP.Trip;
-      exchangePoint: ExchangePoint;
-      tripsResponsesIndex: number;
-      tripsResponseIndex: number;
-    }[],
-    tripsToExchangePoints: {
-      tripResponse: OJP.TripsResponse;
-      exchangePoint: ExchangePoint;
-    }[],
+    bestTrips: indexedTripWrapper[],
+    tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[],
   ) {
     super(tripServiceRequest, system1, system2);
     this.bestTrips = bestTrips;
-    this.tripsToExchangePoints = tripsToExchangePoints;
+    this.tripsToExchangePointsWrappers = tripsToExchangePointsWrappers;
   }
 
   public async findBestTrip(): Promise<InterRegionTripAtDestination> {
-    const tripsFromExchangePoints = (
+    const completeTripWrappers: completeTripWrapper[] = (
       await Promise.all(
         this.bestTrips.map(async tripWrapper => {
           try {
@@ -49,38 +39,13 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
               this.system2,
             );
             const arrivalTimeTripBefore = tripWrapper.trip.computeArrivalTime();
-            if (
-              place &&
-              place.stopPointRef &&
-              place.locationName &&
-              arrivalTimeTripBefore
-            ) {
-              const tripRequest = generateTripRequestForPassiveSystem(
-                this.tripServiceRequest,
-                this.system2,
-                undefined,
-                OJP.Location.initWithStopPlaceRef(
-                  place.stopPointRef,
-                  place.locationName,
-                ),
-                // 3 minutes min to change train
-                new Date(arrivalTimeTripBefore.getTime() + 3 * 60000),
-              );
-              const tripResponse = await getTripResponse(tripRequest);
-              const filteredTrips = tripResponse.trips.filter(trip => {
-                return InterRegionTripAtIntermediate.departureIsMin3MinsEarlierThanArrival(
-                  trip,
-                  arrivalTimeTripBefore,
-                );
-              });
+            if (isTripReqPlace(place) && arrivalTimeTripBefore) {
               return {
-                tripResponse: {
-                  responseXMLText: tripResponse.responseXMLText,
-                  contextLocations: tripResponse.contextLocations,
-                  hasValidResponse: tripResponse.hasValidResponse,
-                  trips: [filteredTrips[0]],
-                },
-                ...tripWrapper,
+                tripFromEP: await this.requestTripFromEP(
+                  place,
+                  arrivalTimeTripBefore,
+                ),
+                tripToEP: tripWrapper,
               };
             }
             return null;
@@ -91,16 +56,14 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
         }),
       )
     ).flatMap(f =>
-      f && f.tripResponse.trips.length > 0 && f.tripResponse.trips[0]
-        ? [f]
-        : [],
+      f && f.tripFromEP.trips.length > 0 && f.tripFromEP.trips[0] ? [f] : [],
     );
     return new InterRegionTripAtDestination(
       this.tripServiceRequest,
       this.system1,
       this.system2,
-      this.tripsToExchangePoints,
-      tripsFromExchangePoints,
+      this.tripsToExchangePointsWrappers,
+      completeTripWrappers,
     );
   }
 
@@ -112,5 +75,29 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
       (trip.computeDepartureTime()?.getTime() ?? 0) >
       arrivalTimeTripBefore.getTime() + 3 * 60000
     );
+  }
+
+  private async requestTripFromEP(place: tripReqPlace, arrivalTimeAtEP: Date) {
+    const tripRequest = generateTripRequestForPassiveSystem(
+      this.tripServiceRequest,
+      this.system2,
+      undefined,
+      OJP.Location.initWithStopPlaceRef(place.stopPointRef, place.locationName),
+      // 3 minutes min to change train
+      new Date(arrivalTimeAtEP.getTime() + 3 * 60000),
+    );
+    const tripResponse = await getTripResponse(tripRequest);
+    const filteredTrips = tripResponse.trips.filter(trip => {
+      return InterRegionTripAtIntermediate.departureIsMin3MinsEarlierThanArrival(
+        trip,
+        arrivalTimeAtEP,
+      );
+    });
+    return {
+      responseXMLText: tripResponse.responseXMLText,
+      contextLocations: tripResponse.contextLocations,
+      hasValidResponse: tripResponse.hasValidResponse,
+      trips: [filteredTrips[0]],
+    };
   }
 }

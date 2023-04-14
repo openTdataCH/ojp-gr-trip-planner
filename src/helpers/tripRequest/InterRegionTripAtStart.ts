@@ -1,8 +1,13 @@
 import * as OJP from 'ojp-sdk';
-import { ExchangePoint } from '../../types/ExchangePoint';
-import { ServiceRequest } from '../../types/serviceRequests';
+import { TripServiceRequest } from '../../types/serviceRequests';
 import { PASSIVE_SYSTEM } from '../../config/passiveSystems';
 import { ExchangePoints } from '../../utils/exchangePoints';
+import {
+  indexedTripWrapper,
+  isTripReqPlace,
+  tripReqPlace,
+  tripsToExchangePointsWrapper,
+} from '../../types/tripRequests';
 import { InterRegionTrip } from './interRegionTrip';
 import { InterRegionTripAtIntermediate } from './InterRegionTripAtIntermediate';
 import {
@@ -12,7 +17,7 @@ import {
 
 export class InterRegionTripAtStart extends InterRegionTrip {
   public constructor(
-    tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+    tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
   ) {
@@ -20,29 +25,17 @@ export class InterRegionTripAtStart extends InterRegionTrip {
   }
 
   public async selectExchangePointsAndTripsToThem(): Promise<InterRegionTripAtIntermediate> {
-    const tripsToExchangePoints: {
-      tripResponse: OJP.TripsResponse;
-      exchangePoint: ExchangePoint;
-    }[] = (
+    const tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[] = (
       await Promise.all(
         ExchangePoints.getExchangePoints().map(async exchangePoint => {
           try {
             const place = exchangePoint.getPlaceForSystem(this.system1);
-            if (place && place.stopPointRef && place.locationName) {
-              const tripRequest = generateTripRequestForPassiveSystem(
-                this.tripServiceRequest,
-                this.system1,
-                OJP.Location.initWithStopPlaceRef(
-                  place.stopPointRef,
-                  place.locationName,
-                ),
-              );
-              return {
-                tripResponse: await getTripResponse(tripRequest),
-                exchangePoint,
-              };
-            }
-            return null;
+            return isTripReqPlace(place)
+              ? {
+                  tripResponse: await this.requestTripToEP(place),
+                  exchangePoint,
+                }
+              : null;
           } catch (e) {
             console.log(e);
             return null;
@@ -50,39 +43,56 @@ export class InterRegionTripAtStart extends InterRegionTrip {
         }),
       )
     ).flatMap(f => (f ? [f] : []));
-    const bestTrips = this.findBestTrips(tripsToExchangePoints);
+    const bestTrips = this.findBestTrips(tripsToExchangePointsWrappers);
     return new InterRegionTripAtIntermediate(
       this.tripServiceRequest,
       this.system1,
       this.system2,
       bestTrips,
-      tripsToExchangePoints,
+      tripsToExchangePointsWrappers,
     );
   }
 
   private findBestTrips(
-    tripsResponses: {
-      tripResponse: OJP.TripsResponse;
-      exchangePoint: ExchangePoint;
-    }[],
+    tripsToExchangePointWrapper: tripsToExchangePointsWrapper[],
     limit = 5,
   ) {
-    return tripsResponses
-      .flatMap((tripsResponse, tripsResponsesIndex) =>
-        tripsResponse.tripResponse.trips.map((trip, tripsResponseIndex) => {
-          return {
-            trip,
-            exchangePoint: tripsResponse.exchangePoint,
-            tripsResponsesIndex,
-            tripsResponseIndex,
-          };
-        }),
-      )
-      .sort(
-        (trip1, trip2) =>
-          (trip1.trip.computeArrivalTime()?.getTime() ?? 0) -
-          (trip2.trip.computeArrivalTime()?.getTime() ?? 0),
-      )
+    return tripsToExchangePointWrapper
+      .flatMap(this.indexTripsToExchangePoint)
+      .sort(InterRegionTripAtStart.sortOnArrivalTime)
       .slice(0, limit);
+  }
+
+  private async requestTripToEP(place: tripReqPlace) {
+    const tripRequest = generateTripRequestForPassiveSystem(
+      this.tripServiceRequest,
+      this.system1,
+      OJP.Location.initWithStopPlaceRef(place.stopPointRef, place.locationName),
+    );
+    return await getTripResponse(tripRequest);
+  }
+
+  private indexTripsToExchangePoint(
+    tripsResponse: tripsToExchangePointsWrapper,
+    tripsResponsesIndex: number,
+  ) {
+    return tripsResponse.tripResponse.trips.map((trip, tripsResponseIndex) => {
+      return {
+        trip,
+        exchangePoint: tripsResponse.exchangePoint,
+        tripsResponsesIndex,
+        tripsResponseIndex,
+      };
+    });
+  }
+
+  private static sortOnArrivalTime(
+    tripWrapper1: indexedTripWrapper,
+    tripWrapper2: indexedTripWrapper,
+  ) {
+    return (
+      (tripWrapper1.trip.computeArrivalTime()?.getTime() ?? 0) -
+      (tripWrapper2.trip.computeArrivalTime()?.getTime() ?? 0)
+    );
   }
 }

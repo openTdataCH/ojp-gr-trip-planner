@@ -13,6 +13,10 @@ export type ServiceRequest = {
     }
 );
 
+export type TripServiceRequest = ServiceRequest & {
+  requestType: 'TripRequest';
+};
+
 type TripRequest = {
   origin: {
     placeRef: PlaceRef;
