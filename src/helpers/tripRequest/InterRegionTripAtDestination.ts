@@ -4,30 +4,35 @@ import { PASSIVE_SYSTEM } from '../../config/passiveSystems';
 import {
   completeTripWrapper,
   indexedTripWrapper,
-  tripsToExchangePointsWrapper,
 } from '../../types/tripRequests';
 import { InterRegionTrip } from './interRegionTrip';
 
 export class InterRegionTripAtDestination extends InterRegionTrip {
-  private tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[];
+  private contextLocations: OJP.Location[][];
   private completeTripWrappers: completeTripWrapper[];
 
   public constructor(
     tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
-    tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[],
+    contextLocations: OJP.Location[][],
     completeTripWrappers: completeTripWrapper[],
   ) {
     super(tripServiceRequest, system1, system2);
-    this.tripsToExchangePointsWrappers = tripsToExchangePointsWrappers;
+    this.contextLocations = contextLocations;
     this.completeTripWrappers = completeTripWrappers;
   }
 
   public getTripResponse(): OJP.TripsResponse {
-    return this.prepareTripResponses().reduce(
+    const tripResponse = this.prepareTripResponses().reduce(
       InterRegionTripAtDestination.reduceTripResponses,
     );
+    return {
+      ...tripResponse,
+      contextLocations: this.makeDistinctLocations(
+        tripResponse.contextLocations,
+      ),
+    };
   }
 
   private prepareTripResponses() {
@@ -102,9 +107,7 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
 
   private aggregateContextLocations(tripWrapper: completeTripWrapper) {
     return [
-      ...this.tripsToExchangePointsWrappers[
-        tripWrapper.tripToEP.tripsResponsesIndex
-      ].tripResponse.contextLocations,
+      ...this.contextLocations[tripWrapper.tripToEP.tripsResponsesIndex],
       ...tripWrapper.tripFromEP.contextLocations,
     ];
   }
@@ -120,5 +123,16 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
       ),
       trips: aggregatedResponse.trips.concat(tripResponse.trips),
     };
+  }
+
+  private makeDistinctLocations(locations: OJP.Location[]) {
+    const distinctMap = new Map<string, OJP.Location>();
+    locations.forEach(location => {
+      const stopPointRef = location.stopPointRef;
+      if (stopPointRef) {
+        distinctMap.set(stopPointRef, location);
+      }
+    });
+    return [...distinctMap.values()];
   }
 }
