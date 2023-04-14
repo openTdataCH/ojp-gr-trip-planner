@@ -1,12 +1,12 @@
-import { ServiceRequest } from '../../types/serviceRequests';
+import { TripServiceRequest } from '../../types/serviceRequests';
 import { PASSIVE_SYSTEM } from '../../config/passiveSystems';
 
 export abstract class InterRegionTrip {
-  protected tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' };
+  protected tripServiceRequest: TripServiceRequest;
   protected system1: PASSIVE_SYSTEM;
   protected system2: PASSIVE_SYSTEM;
   protected constructor(
-    tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+    tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
   ) {

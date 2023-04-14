@@ -12,8 +12,8 @@ import { XMLRequest } from '../types/xmlRequest';
 import CONFIG from '../config';
 import { locationInformationRequest } from '../passiveSystems/locationInformationRequest';
 import { PASSIVE_SYSTEM } from '../config/passiveSystems';
-import { createTripResponse } from '../helpers/createTripResponse';
-import { ServiceRequest } from '../types/serviceRequests';
+import { createXMLTripResponse } from '../helpers/createXMLTripResponse';
+import { TripServiceRequest } from '../types/serviceRequests';
 import { InterRegionTripAtStart } from '../helpers/tripRequest/InterRegionTripAtStart';
 import { generateTripRequestForPassiveSystem } from '../helpers/tripRequest/regionInternalTrip';
 
@@ -37,28 +37,15 @@ export const postOJPXML = async (req: Request, res: Response) => {
 
   try {
     if (serviceRequest.requestType === 'LocationInformationRequest') {
-      const resultXML =
-        await createLocationInformationResponseFromPassiveSystems(
-          serviceRequest.body.initialInput,
+      return res
+        .status(200)
+        .send(
+          await handleLocationInformationRequest(
+            serviceRequest.body.initialInput,
+          ),
         );
-      return res.status(200).send(resultXML);
     } else if (serviceRequest.requestType === 'TripRequest') {
-      const [system1, system2] = selectPassiveSystems(serviceRequest);
-      if (system2) {
-        const tripResponse: OJP.TripsResponse =
-          await generateInterSystemTripResponse(
-            serviceRequest,
-            system1,
-            system2,
-          );
-        return res.status(200).send(createTripResponse(tripResponse));
-      } else {
-        const tripRequest = generateTripRequestForPassiveSystem(
-          serviceRequest,
-          system1,
-        );
-        return res.status(200).send(await getCastedTripResponse(tripRequest));
-      }
+      return res.status(200).send(await handleTripRequest(serviceRequest));
     }
   } catch (e) {
     console.error(e);
@@ -72,9 +59,19 @@ export const postOJPXML = async (req: Request, res: Response) => {
   return res.status(200).send(xml);
 };
 
-async function createLocationInformationResponseFromPassiveSystems(
-  initialInput: string,
-) {
+async function handleTripRequest(tripServiceRequest: TripServiceRequest) {
+  const [system1, system2] = selectPassiveSystems(tripServiceRequest);
+  const tripResponse: OJP.TripsResponse = system2
+    ? await generateInterSystemTripResponse(
+        tripServiceRequest,
+        system1,
+        system2,
+      )
+    : await generateSingleSystemTripResponse(tripServiceRequest, system1);
+  return createXMLTripResponse(tripResponse);
+}
+
+async function handleLocationInformationRequest(initialInput: string) {
   const responseFromPassiveSystems = await Promise.all(
     Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
       try {
@@ -115,14 +112,8 @@ async function getTripResponse(
   });
 }
 
-async function getCastedTripResponse(
-  tripRequest: OJP.TripRequest,
-): Promise<string> {
-  return createTripResponse(await getTripResponse(tripRequest));
-}
-
 async function generateInterSystemTripResponse(
-  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+  tripServiceRequest: TripServiceRequest,
   system1: PASSIVE_SYSTEM,
   system2: PASSIVE_SYSTEM,
 ) {
@@ -136,8 +127,19 @@ async function generateInterSystemTripResponse(
   return tripAtDestination.getTripResponse();
 }
 
+async function generateSingleSystemTripResponse(
+  tripServiceRequest: TripServiceRequest,
+  system1: PASSIVE_SYSTEM,
+) {
+  const tripRequest: OJP.TripRequest = generateTripRequestForPassiveSystem(
+    tripServiceRequest,
+    system1,
+  );
+  return await getTripResponse(tripRequest);
+}
+
 function selectPassiveSystems(
-  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
+  tripServiceRequest: TripServiceRequest,
 ): PASSIVE_SYSTEM[] {
   const system1 = NameToSystemMapper.getSystems(
     tripServiceRequest.body.origin.placeRef.stopPointRef,

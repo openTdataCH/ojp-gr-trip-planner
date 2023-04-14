@@ -5,7 +5,7 @@ import { StopPoint } from 'ojp-sdk/lib/trip/leg/timed-leg/stop-point';
 import { JourneyService } from 'ojp-sdk/lib/journey/journey-service';
 import CONFIG from '../config';
 
-export function createTripResponse(tripsResponse: OJP.TripsResponse) {
+export function createXMLTripResponse(tripsResponse: OJP.TripsResponse) {
   const xmlContent = {
     'siri:OJP': {
       '@xmlns:siri': 'http://www.siri.org.uk/siri',
