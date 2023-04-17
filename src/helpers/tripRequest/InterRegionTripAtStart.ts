@@ -27,7 +27,10 @@ export class InterRegionTripAtStart extends InterRegionTrip {
   public async selectExchangePointsAndTripsToThem(): Promise<InterRegionTripAtIntermediate> {
     const tripsToExchangePointsWrappers: tripsToExchangePointsWrapper[] = (
       await Promise.all(
-        ExchangePoints.getExchangePoints().map(async exchangePoint => {
+        ExchangePoints.getBestExchangePoints(
+          this.tripServiceRequest.body.origin.placeRef.stopPointRef,
+          this.tripServiceRequest.body.destination.placeRef.stopPointRef,
+        ).map(async exchangePoint => {
           try {
             const place = exchangePoint.getPlaceForSystem(this.system1);
             return isTripReqPlace(place)

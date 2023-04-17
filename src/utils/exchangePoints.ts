@@ -2,6 +2,7 @@ import { PASSIVE_SYSTEM, passiveSystemsConfig } from '../config/passiveSystems';
 import { ExchangePoint } from '../types/ExchangePoint';
 import { ExchangePointRequest } from '../ojp-sdk-extension/ExchangePointRequest';
 import { Place } from '../ojp-sdk-extension/Place';
+import { NameToSystemMapper } from '../helpers';
 
 export abstract class ExchangePoints {
   private static unavailableSystems: PASSIVE_SYSTEM[] = [];
@@ -122,7 +123,25 @@ export abstract class ExchangePoints {
     return ExchangePoints.unavailableSystems;
   }
 
-  public static getExchangePoints() {
-    return ExchangePoints.exchangePoints;
+  public static getBestExchangePoints(
+    originRef: string,
+    destRef: string,
+    limit = 5,
+  ) {
+    const origin = NameToSystemMapper.getLocation(originRef);
+    const destination = NameToSystemMapper.getLocation(destRef);
+    if (!(origin?.geoPosition && destination?.geoPosition))
+      return ExchangePoints.exchangePoints;
+    return ExchangePoints.exchangePoints
+      .sort((a, b) => {
+        return (
+          a.getManhattanDistance(
+            origin.geoPosition!,
+            destination.geoPosition!,
+          ) -
+          b.getManhattanDistance(origin.geoPosition!, destination.geoPosition!)
+        );
+      })
+      .slice(0, limit);
   }
 }
