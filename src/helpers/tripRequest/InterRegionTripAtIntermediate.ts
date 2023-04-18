@@ -7,6 +7,7 @@ import {
   isTripReqPlace,
   tripReqPlace,
 } from '../../types/tripRequests';
+import CONFIG from '../../config';
 import { InterRegionTrip } from './interRegionTrip';
 import { InterRegionTripAtDestination } from './InterRegionTripAtDestination';
 import {
@@ -66,13 +67,13 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
     );
   }
 
-  private static departureIsMin3MinsEarlierThanArrival(
+  private static departureIsMinXMinsEarlierThanArrival(
     trip: OJP.Trip,
     arrivalTimeTripBefore: Date,
   ): boolean {
     return (
       (trip.computeDepartureTime()?.getTime() ?? 0) >
-      arrivalTimeTripBefore.getTime() + 3 * 60000
+      arrivalTimeTripBefore.getTime() + CONFIG.MIN_MINS_AT_EP * 60000
     );
   }
 
@@ -83,11 +84,11 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
       undefined,
       OJP.Location.initWithStopPlaceRef(place.stopPointRef, place.locationName),
       // 3 minutes min to change train
-      new Date(arrivalTimeAtEP.getTime() + 3 * 60000),
+      new Date(arrivalTimeAtEP.getTime() + CONFIG.MIN_MINS_AT_EP * 60000),
     );
     const tripResponse = await getTripResponse(tripRequest);
     const filteredTrips = tripResponse.trips.filter(trip => {
-      return InterRegionTripAtIntermediate.departureIsMin3MinsEarlierThanArrival(
+      return InterRegionTripAtIntermediate.departureIsMinXMinsEarlierThanArrival(
         trip,
         arrivalTimeAtEP,
       );
