@@ -110,6 +110,7 @@ export abstract class ExchangePoints {
   private static getCorrectPlacesOrder(): ('place1' | 'place2')[] {
     const firstEP = ExchangePoints.exchangePoints[0];
     if (
+      firstEP &&
       firstEP.place1.stopPointRef &&
       firstEP.place2.stopPointRef &&
       firstEP.place1.stopPointRef.length > firstEP.place2.stopPointRef.length

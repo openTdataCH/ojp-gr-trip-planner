@@ -38,6 +38,7 @@ const CONFIG = {
   WITH_LINK_PROJECTION: false,
   STA_SEARCH_TWEAK: 0.52,
   NUMBER_OF_PRESELECTED_EPS: 5,
+  MIN_MINS_AT_EP: 0,
 } as const;
 
 export default CONFIG;

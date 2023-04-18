@@ -6,7 +6,7 @@ When entered more than one letter into the search field in the frontend it will 
 The result are locations with the originSystem. Those locations are ordered with the probability property 
 provided by the backend systems. See also [probability tweaking](#probability-tweaking).
 
-![image](docs/img/LocationInformationRequest.jpg)
+![image](./img/LocationInformationRequest.PNG)
 
 ### Limitations
 
@@ -22,7 +22,7 @@ This constant can be changed in the [config](./src/config/index.ts) and is named
 The TripRequest delivers a TripResult from the origin to the destination location. 
 This works if both locations are in the same system and also if they are in a different one.
 
-![Trip Request](./img/TripRequest.jpg)
+![Trip Request](./img/TripRequest.PNG)
 
 ### Limitations
 
@@ -46,3 +46,5 @@ with the Mode of Transport `Public Transport`.
 At startup the server calls the two passive system. If one of those ore both are not available, the server will save 
 this information. The demonstrator can query this information and will display it. The health status will not be updated.
 However it is possible to get the locations of a system that is online again.
+
+![Trip Request](./img/HealthCheck.PNG)
