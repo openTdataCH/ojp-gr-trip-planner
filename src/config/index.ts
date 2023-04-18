@@ -37,6 +37,7 @@ const CONFIG = {
   PASSIVE_SYSTEMS: passiveSystemsConfig,
   WITH_LINK_PROJECTION: false,
   STA_SEARCH_TWEAK: 0.52,
+  NUMBER_OF_PRESELECTED_EPS: 5,
 } as const;
 
 export default CONFIG;

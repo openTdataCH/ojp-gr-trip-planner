@@ -8,6 +8,7 @@ import {
   tripReqPlace,
   tripsToExchangePointsWrapper,
 } from '../../types/tripRequests';
+import CONFIG from '../../config';
 import { InterRegionTrip } from './interRegionTrip';
 import { InterRegionTripAtIntermediate } from './InterRegionTripAtIntermediate';
 import {
@@ -30,6 +31,7 @@ export class InterRegionTripAtStart extends InterRegionTrip {
         ExchangePoints.getBestExchangePoints(
           this.tripServiceRequest.body.origin.placeRef.stopPointRef,
           this.tripServiceRequest.body.destination.placeRef.stopPointRef,
+          CONFIG.NUMBER_OF_PRESELECTED_EPS,
         ).map(async exchangePoint => {
           try {
             const place = exchangePoint.getPlaceForSystem(this.system1);
