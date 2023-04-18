@@ -6,7 +6,7 @@ When entered more than one letter into the search field in the frontend it will 
 The result are locations with the originSystem. Those locations are ordered with the probability property 
 provided by the backend systems. See also [probability tweaking](#probability-tweaking).
 
-![image](./img/LocationInformationRequest.PNG)
+![LocationInformationRequest](./img/LocationInformationRequest.PNG)
 
 ### Limitations
 
@@ -47,4 +47,4 @@ At startup the server calls the two passive system. If one of those ore both are
 this information. The demonstrator can query this information and will display it. The health status will not be updated.
 However it is possible to get the locations of a system that is online again.
 
-![Trip Request](./img/HealthCheck.PNG)
+![Health Check](./img/HealthCheck.PNG)
