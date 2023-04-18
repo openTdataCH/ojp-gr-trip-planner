@@ -11,9 +11,11 @@ import {
 import { XMLRequest } from '../types/xmlRequest';
 import CONFIG from '../config';
 import { locationInformationRequest } from '../passiveSystems/locationInformationRequest';
-import { PASSIVE_SYSTEM, passiveSystemsConfig } from '../config/passiveSystems';
-import { createTripResponse } from '../helpers/createTripResponse';
-import { ServiceRequest } from '../types/serviceRequests';
+import { PASSIVE_SYSTEM } from '../config/passiveSystems';
+import { createXMLTripResponse } from '../helpers/createXMLTripResponse';
+import { TripServiceRequest } from '../types/serviceRequests';
+import { InterRegionTripAtStart } from '../helpers/tripRequest/InterRegionTripAtStart';
+import { generateTripRequestForPassiveSystem } from '../helpers/tripRequest/regionInternalTrip';
 
 const { JSDOM } = jsdom;
 global.DOMParser = new JSDOM().window.DOMParser;
@@ -35,17 +37,15 @@ export const postOJPXML = async (req: Request, res: Response) => {
 
   try {
     if (serviceRequest.requestType === 'LocationInformationRequest') {
-      const resultXML =
-        await createLocationInformationResponseFromPassiveSystems(
-          serviceRequest.body.initialInput,
+      return res
+        .status(200)
+        .send(
+          await handleLocationInformationRequest(
+            serviceRequest.body.initialInput,
+          ),
         );
-      return res.status(200).send(resultXML);
     } else if (serviceRequest.requestType === 'TripRequest') {
-      const tripRequest = generateTripRequestForPassiveSystem(
-        serviceRequest,
-        selectPassiveSystem(serviceRequest),
-      );
-      return res.status(200).send(await getTripResponse(tripRequest));
+      return res.status(200).send(await handleTripRequest(serviceRequest));
     }
   } catch (e) {
     console.error(e);
@@ -59,30 +59,19 @@ export const postOJPXML = async (req: Request, res: Response) => {
   return res.status(200).send(xml);
 };
 
-function makeDistinctLocations(locations: OJP.Location[]) {
-  const distinctMap = new Map<string, OJP.Location>();
-  locations.forEach(location => {
-    const name = location.computeLocationName();
-    if (name) {
-      const otherLocation = distinctMap.get(name);
-      if (otherLocation === undefined) {
-        distinctMap.set(name, location);
-      } else {
-        if (location.stopPointRef && otherLocation.stopPointRef) {
-          NameToSystemMapper.addDuplicate(
-            otherLocation.stopPointRef,
-            location.stopPointRef,
-          );
-        }
-      }
-    }
-  });
-  return [...distinctMap.values()];
+async function handleTripRequest(tripServiceRequest: TripServiceRequest) {
+  const [system1, system2] = selectPassiveSystems(tripServiceRequest);
+  const tripResponse: OJP.TripsResponse = system2
+    ? await generateInterSystemTripResponse(
+        tripServiceRequest,
+        system1,
+        system2,
+      )
+    : await generateSingleSystemTripResponse(tripServiceRequest, system1);
+  return createXMLTripResponse(tripResponse);
 }
 
-async function createLocationInformationResponseFromPassiveSystems(
-  initialInput: string,
-) {
+async function handleLocationInformationRequest(initialInput: string) {
   const responseFromPassiveSystems = await Promise.all(
     Object.values(CONFIG.PASSIVE_SYSTEMS).map(async passiveSystem => {
       try {
@@ -102,19 +91,19 @@ async function createLocationInformationResponseFromPassiveSystems(
       }
     }),
   );
-  return createLocationInfoResponse(
-    makeDistinctLocations(responseFromPassiveSystems.flat()),
-  );
+  return createLocationInfoResponse(responseFromPassiveSystems.flat());
 }
 
-async function getTripResponse(tripRequest: OJP.TripRequest): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+async function getTripResponse(
+  tripRequest: OJP.TripRequest,
+): Promise<OJP.TripsResponse> {
+  return new Promise<OJP.TripsResponse>((resolve, reject) => {
     tripRequest.fetchResponse((responseText, errorData) => {
       if (errorData) {
         console.error(errorData);
       }
       try {
-        resolve(createTripResponse(responseText));
+        resolve(responseText);
       } catch (e) {
         console.error(e);
         reject(e);
@@ -123,51 +112,42 @@ async function getTripResponse(tripRequest: OJP.TripRequest): Promise<string> {
   });
 }
 
-function generateTripRequestForPassiveSystem(
-  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
-  system: PASSIVE_SYSTEM,
+async function generateInterSystemTripResponse(
+  tripServiceRequest: TripServiceRequest,
+  system1: PASSIVE_SYSTEM,
+  system2: PASSIVE_SYSTEM,
 ) {
-  const originRef = tripServiceRequest.body.origin;
-  const departTimeString = originRef.departTime;
-  const destinationRef = tripServiceRequest.body.destination.placeRef;
-  const destination = OJP.Location.initWithStopPlaceRef(
-    destinationRef.stopPointRef,
-    destinationRef.locationName,
+  const tripAtStart = new InterRegionTripAtStart(
+    tripServiceRequest,
+    system1,
+    system2,
   );
-  const departTime = new Date(departTimeString);
-  const origin = OJP.Location.initWithStopPlaceRef(
-    originRef.placeRef.stopPointRef,
-    originRef.placeRef.locationName,
-  );
-  const tripRequestParams = OJP.TripsRequestParams.initWithLocationsAndDate(
-    new OJP.TripLocationPoint(origin),
-    new OJP.TripLocationPoint(destination),
-    departTime,
-  );
-  return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
+  const tripAtEPs = await tripAtStart.selectExchangePointsAndTripsToThem();
+  const tripAtDestination = await tripAtEPs.findBestTrip();
+  return tripAtDestination.getTripResponse();
 }
 
-function selectPassiveSystem(
-  tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
-): PASSIVE_SYSTEM {
-  const originRef = tripServiceRequest.body.origin.placeRef;
-  const destinationRef = tripServiceRequest.body.destination.placeRef;
+async function generateSingleSystemTripResponse(
+  tripServiceRequest: TripServiceRequest,
+  system1: PASSIVE_SYSTEM,
+) {
+  const tripRequest: OJP.TripRequest = generateTripRequestForPassiveSystem(
+    tripServiceRequest,
+    system1,
+  );
+  return await getTripResponse(tripRequest);
+}
+
+function selectPassiveSystems(
+  tripServiceRequest: TripServiceRequest,
+): PASSIVE_SYSTEM[] {
   const system1 = NameToSystemMapper.getSystems(
     tripServiceRequest.body.origin.placeRef.stopPointRef,
   );
   const system2 = NameToSystemMapper.getSystems(
     tripServiceRequest.body.destination.placeRef.stopPointRef,
   );
-  if (system1 && system2 && system1 === system2) return system1;
-  if (
-    system2 &&
-    NameToSystemMapper.getDuplicate(originRef.stopPointRef) !== undefined
-  )
-    return system2;
-  if (
-    system1 &&
-    NameToSystemMapper.getDuplicate(destinationRef.stopPointRef) !== undefined
-  )
-    return system1;
-  throw Error();
+  if (system1 && system2 && system1 === system2) return [system1];
+  if (system1 && system2) return [system1, system2];
+  throw new Error('One system is not defined');
 }
