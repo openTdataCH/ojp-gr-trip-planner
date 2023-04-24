@@ -48,7 +48,9 @@ export class InterRegionTripAtStart extends InterRegionTrip {
         }),
       )
     ).flatMap(f => (f ? [f] : []));
-    const bestTrips = this.findBestTrips(tripsToExchangePointsWrappers);
+    const bestTrips = InterRegionTripAtStart.findBestTrips(
+      tripsToExchangePointsWrappers,
+    );
     return new InterRegionTripAtIntermediate(
       this.tripServiceRequest,
       this.system1,
@@ -58,24 +60,14 @@ export class InterRegionTripAtStart extends InterRegionTrip {
     );
   }
 
-  private findBestTrips(
+  private static findBestTrips(
     tripsToExchangePointWrapper: tripsToExchangePointsWrapper[],
     limit = 5,
   ) {
     return tripsToExchangePointWrapper
-      .map(wrapper => {
-        wrapper.tripResponse.trips = wrapper.tripResponse.trips
-          .sort((a, b) => {
-            return (
-              (a.computeArrivalTime()?.getTime() ?? 0) -
-              (b.computeArrivalTime()?.getTime() ?? 0)
-            );
-          })
-          .filter(x => !!x);
-        return wrapper;
-      })
-      .flatMap(this.indexTripsToExchangePoint)
-      .sort(InterRegionTripAtStart.sortOnArrivalTime)
+      .map(this.sortAndFilterTrips)
+      .flatMap(InterRegionTripAtStart.indexTripsToExchangePoint)
+      .sort(InterRegionTrip.sortWrapperOnArrivalTime)
       .slice(0, limit);
   }
 
@@ -88,7 +80,19 @@ export class InterRegionTripAtStart extends InterRegionTrip {
     return await getTripResponse(tripRequest);
   }
 
-  private indexTripsToExchangePoint(
+  private static sortAndFilterTrips(wrapper: tripsToExchangePointsWrapper) {
+    return {
+      ...wrapper,
+      tripResponse: {
+        ...wrapper.tripResponse,
+        trips: wrapper.tripResponse.trips
+          .sort(InterRegionTrip.sortOnArrivalTime)
+          .filter(x => !!x),
+      },
+    };
+  }
+
+  private static indexTripsToExchangePoint(
     tripsToEPWrapper: tripsToExchangePointsWrapper,
     tripsResponsesIndex: number,
   ): indexedTripWrapper[] {
@@ -101,15 +105,5 @@ export class InterRegionTripAtStart extends InterRegionTrip {
           },
         ]
       : [];
-  }
-
-  private static sortOnArrivalTime(
-    tripWrapper1: indexedTripWrapper,
-    tripWrapper2: indexedTripWrapper,
-  ) {
-    return (
-      (tripWrapper1.trip.computeArrivalTime()?.getTime() ?? 0) -
-      (tripWrapper2.trip.computeArrivalTime()?.getTime() ?? 0)
-    );
   }
 }
