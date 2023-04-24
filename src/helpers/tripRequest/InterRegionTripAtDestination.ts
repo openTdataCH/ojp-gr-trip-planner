@@ -50,7 +50,26 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
             ),
           ],
         );
-      });
+      })
+      .reduce((accumulator: OJP.TripsResponse[], currentValue) => {
+        if (accumulator.length === 0) return [currentValue];
+        const tripBefore = accumulator[accumulator.length - 1].trips[0];
+        if (
+          tripBefore.stats.startDatetime.getTime() ===
+            currentValue.trips[0].stats.startDatetime.getTime() &&
+          tripBefore.stats.endDatetime.getTime() ===
+            currentValue.trips[0].stats.endDatetime.getTime()
+        ) {
+          if (
+            tripBefore.stats.transferNo > currentValue.trips[0].stats.transferNo
+          ) {
+            accumulator[accumulator.length - 1] = currentValue;
+          }
+        } else {
+          accumulator.push(currentValue);
+        }
+        return accumulator;
+      }, []);
   }
 
   private static sortOnArrivalTime(

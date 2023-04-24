@@ -54,7 +54,7 @@ export class InterRegionTripAtStart extends InterRegionTrip {
       this.system1,
       this.system2,
       bestTrips,
-      tripsToExchangePointsWrappers.map(t => t.tripResponse.contextLocations),
+      tripsToExchangePointsWrappers,
     );
   }
 
@@ -63,6 +63,17 @@ export class InterRegionTripAtStart extends InterRegionTrip {
     limit = 5,
   ) {
     return tripsToExchangePointWrapper
+      .map(wrapper => {
+        wrapper.tripResponse.trips = wrapper.tripResponse.trips
+          .sort((a, b) => {
+            return (
+              (a.computeArrivalTime()?.getTime() ?? 0) -
+              (b.computeArrivalTime()?.getTime() ?? 0)
+            );
+          })
+          .filter(x => !!x);
+        return wrapper;
+      })
       .flatMap(this.indexTripsToExchangePoint)
       .sort(InterRegionTripAtStart.sortOnArrivalTime)
       .slice(0, limit);
@@ -80,14 +91,16 @@ export class InterRegionTripAtStart extends InterRegionTrip {
   private indexTripsToExchangePoint(
     tripsToEPWrapper: tripsToExchangePointsWrapper,
     tripsResponsesIndex: number,
-  ) {
-    return tripsToEPWrapper.tripResponse.trips.map(trip => {
-      return {
-        trip,
-        exchangePoint: tripsToEPWrapper.exchangePoint,
-        tripsResponsesIndex,
-      };
-    });
+  ): indexedTripWrapper[] {
+    return tripsToEPWrapper.tripResponse.trips[0]
+      ? [
+          {
+            trip: tripsToEPWrapper.tripResponse.trips[0],
+            exchangePoint: tripsToEPWrapper.exchangePoint,
+            tripsResponsesIndex,
+          },
+        ]
+      : [];
   }
 
   private static sortOnArrivalTime(
