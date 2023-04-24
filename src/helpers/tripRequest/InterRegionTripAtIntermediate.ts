@@ -63,27 +63,15 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
       .map(wrapper => {
         const departureAtEP =
           wrapper.tripFromEP.trips[0].computeDepartureTime();
-        const exchangePoint = wrapper.tripToEP.exchangePoint;
         const tripResponseToEP = this.tripsToExchangePointWrappers.find(
-          x => x.exchangePoint === exchangePoint,
+          trip => trip.exchangePoint === wrapper.tripToEP.exchangePoint,
         );
         if (departureAtEP && tripResponseToEP) {
-          wrapper.tripToEP.trip =
-            tripResponseToEP.tripResponse.trips
-              .filter(
-                x =>
-                  (x.computeArrivalTime() ?? Number.MAX_VALUE) <=
-                    departureAtEP &&
-                  InterRegionTripAtIntermediate.departureIsMinXMinsEarlierThanArrival(
-                    x,
-                    departureAtEP,
-                  ),
-              )
-              .sort(
-                (a, b) =>
-                  (b.computeArrivalTime()?.getTime() ?? 0) -
-                  (a.computeArrivalTime()?.getTime() ?? 0),
-              )[0] ?? wrapper.tripToEP.trip;
+          wrapper.tripToEP.trip = InterRegionTripAtIntermediate.computeBestTrip(
+            tripResponseToEP,
+            departureAtEP,
+            wrapper.tripToEP.trip,
+          );
         }
         return wrapper;
       });
@@ -98,13 +86,31 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
     );
   }
 
-  private static departureIsMinXMinsEarlierThanArrival(
-    trip: OJP.Trip,
-    arrivalTimeTripBefore: Date,
+  private static computeBestTrip(
+    tripResponseToEP: tripsToExchangePointsWrapper,
+    departureAtEP: Date,
+    backupTrip: OJP.Trip,
+  ) {
+    return (
+      tripResponseToEP.tripResponse.trips
+        .filter(trip =>
+          InterRegionTripAtIntermediate.departureIsMinXMinsLaterThanArrival(
+            departureAtEP,
+            trip.computeArrivalTime(),
+          ),
+        )
+        .sort(InterRegionTrip.sortOnArrivalTime)
+        .pop() ?? backupTrip
+    );
+  }
+
+  private static departureIsMinXMinsLaterThanArrival(
+    departureTime: Date | null,
+    arrivalTimeTripBefore: Date | null,
   ): boolean {
     return (
-      (trip.computeDepartureTime()?.getTime() ?? 0) >=
-      arrivalTimeTripBefore.getTime() + CONFIG.MIN_MINS_AT_EP * 60000
+      (departureTime?.getTime() ?? 0) >=
+      (arrivalTimeTripBefore?.getTime() ?? 0) + CONFIG.MIN_MINS_AT_EP * 60000
     );
   }
 
@@ -119,8 +125,8 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
     );
     const tripResponse = await getTripResponse(tripRequest);
     const filteredTrips = tripResponse.trips.filter(trip => {
-      return InterRegionTripAtIntermediate.departureIsMinXMinsEarlierThanArrival(
-        trip,
+      return InterRegionTripAtIntermediate.departureIsMinXMinsLaterThanArrival(
+        trip.computeDepartureTime(),
         arrivalTimeAtEP,
       );
     });
