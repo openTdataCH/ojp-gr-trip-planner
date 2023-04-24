@@ -14,7 +14,7 @@ The server only will look on the provided "initial Input", nothing else.
 
 ### Probability tweaking
 
-The probability from STA is way lower then the one from SBB. Therefore a constant is added to all the locations from STA.
+The probability from STA is way lower than the one from SBB. Therefore, a constant is added to all the locations from STA.
 This constant can be changed in the [config](./src/config/index.ts) and is named `STA_SEARCH_TWEAK`.
 
 ## TripRequest
