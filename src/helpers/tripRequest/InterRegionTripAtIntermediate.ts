@@ -6,6 +6,7 @@ import {
   indexedTripWrapper,
   isTripReqPlace,
   tripReqPlace,
+  tripsToExchangePointsWrapper,
 } from '../../types/tripRequests';
 import CONFIG from '../../config';
 import { InterRegionTrip } from './interRegionTrip';
@@ -17,17 +18,17 @@ import {
 
 export class InterRegionTripAtIntermediate extends InterRegionTrip {
   private bestTrips: indexedTripWrapper[];
-  private readonly contextLocations: OJP.Location[][];
+  private readonly tripsToExchangePointWrappers: tripsToExchangePointsWrapper[];
   public constructor(
     tripServiceRequest: TripServiceRequest,
     system1: PASSIVE_SYSTEM,
     system2: PASSIVE_SYSTEM,
     bestTrips: indexedTripWrapper[],
-    contextLocations: OJP.Location[][],
+    tripsToExchangePointWrappers: tripsToExchangePointsWrapper[],
   ) {
     super(tripServiceRequest, system1, system2);
     this.bestTrips = bestTrips;
-    this.contextLocations = contextLocations;
+    this.tripsToExchangePointWrappers = tripsToExchangePointWrappers;
   }
 
   public async findBestTrip(): Promise<InterRegionTripAtDestination> {
@@ -55,25 +56,61 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
           }
         }),
       )
-    ).flatMap(f =>
-      f && f.tripFromEP.trips.length > 0 && f.tripFromEP.trips[0] ? [f] : [],
-    );
+    )
+      .flatMap(f =>
+        f && f.tripFromEP.trips.length > 0 && f.tripFromEP.trips[0] ? [f] : [],
+      )
+      .map(wrapper => {
+        const departureAtEP =
+          wrapper.tripFromEP.trips[0].computeDepartureTime();
+        const tripResponseToEP = this.tripsToExchangePointWrappers.find(
+          trip => trip.exchangePoint === wrapper.tripToEP.exchangePoint,
+        );
+        if (departureAtEP && tripResponseToEP) {
+          wrapper.tripToEP.trip = InterRegionTripAtIntermediate.computeBestTrip(
+            tripResponseToEP,
+            departureAtEP,
+            wrapper.tripToEP.trip,
+          );
+        }
+        return wrapper;
+      });
     return new InterRegionTripAtDestination(
       this.tripServiceRequest,
       this.system1,
       this.system2,
-      this.contextLocations,
+      this.tripsToExchangePointWrappers.map(
+        t => t.tripResponse.contextLocations,
+      ),
       completeTripWrappers,
     );
   }
 
-  private static departureIsMinXMinsEarlierThanArrival(
-    trip: OJP.Trip,
-    arrivalTimeTripBefore: Date,
+  private static computeBestTrip(
+    tripResponseToEP: tripsToExchangePointsWrapper,
+    departureAtEP: Date,
+    backupTrip: OJP.Trip,
+  ) {
+    return (
+      tripResponseToEP.tripResponse.trips
+        .filter(trip =>
+          InterRegionTripAtIntermediate.departureIsMinXMinsLaterThanArrival(
+            departureAtEP,
+            trip.computeArrivalTime(),
+          ),
+        )
+        .sort(InterRegionTrip.sortOnArrivalTime)
+        .pop() ?? backupTrip
+    );
+  }
+
+  private static departureIsMinXMinsLaterThanArrival(
+    departureTime: Date | null,
+    arrivalTimeTripBefore: Date | null,
   ): boolean {
     return (
-      (trip.computeDepartureTime()?.getTime() ?? 0) >
-      arrivalTimeTripBefore.getTime() + CONFIG.MIN_MINS_AT_EP * 60000
+      (departureTime?.getTime() ?? 0) >=
+      (arrivalTimeTripBefore?.getTime() ?? 0) + CONFIG.MIN_MINS_AT_EP * 60000
     );
   }
 
@@ -88,8 +125,8 @@ export class InterRegionTripAtIntermediate extends InterRegionTrip {
     );
     const tripResponse = await getTripResponse(tripRequest);
     const filteredTrips = tripResponse.trips.filter(trip => {
-      return InterRegionTripAtIntermediate.departureIsMinXMinsEarlierThanArrival(
-        trip,
+      return InterRegionTripAtIntermediate.departureIsMinXMinsLaterThanArrival(
+        trip.computeDepartureTime(),
         arrivalTimeAtEP,
       );
     });

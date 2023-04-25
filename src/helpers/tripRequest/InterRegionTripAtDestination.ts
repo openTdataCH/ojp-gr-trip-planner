@@ -8,7 +8,7 @@ import {
 import { InterRegionTrip } from './interRegionTrip';
 
 export class InterRegionTripAtDestination extends InterRegionTrip {
-  private contextLocations: OJP.Location[][];
+  private readonly contextLocations: OJP.Location[][];
   private completeTripWrappers: completeTripWrapper[];
 
   public constructor(
@@ -37,7 +37,12 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
 
   private prepareTripResponses() {
     return this.completeTripWrappers
-      .sort(InterRegionTripAtDestination.sortOnArrivalTime)
+      .sort((wrapper1, wrapper2) => {
+        return InterRegionTrip.sortOnArrivalTime(
+          wrapper1.tripFromEP.trips[0],
+          wrapper2.tripFromEP.trips[0],
+        );
+      })
       .map(tripWrapper => {
         return new OJP.TripsResponse(
           true,
@@ -50,17 +55,31 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
             ),
           ],
         );
-      });
+      })
+      .reduce(InterRegionTripAtDestination.filterDuplicates, []);
   }
 
-  private static sortOnArrivalTime(
-    tripWrapper1: completeTripWrapper,
-    tripWrapper2: completeTripWrapper,
+  private static filterDuplicates(
+    accumulator: OJP.TripsResponse[],
+    currentValue: OJP.TripsResponse,
   ) {
-    return (
-      (tripWrapper1.tripFromEP.trips[0].computeArrivalTime()?.getTime() ?? 0) -
-      (tripWrapper2.tripFromEP.trips[0].computeArrivalTime()?.getTime() ?? 0)
-    );
+    if (accumulator.length === 0) return [currentValue];
+    const tripBefore = accumulator[accumulator.length - 1].trips[0];
+    if (
+      tripBefore.stats.startDatetime.getTime() ===
+        currentValue.trips[0].stats.startDatetime.getTime() &&
+      tripBefore.stats.endDatetime.getTime() ===
+        currentValue.trips[0].stats.endDatetime.getTime()
+    ) {
+      if (
+        tripBefore.stats.transferNo > currentValue.trips[0].stats.transferNo
+      ) {
+        accumulator[accumulator.length - 1] = currentValue;
+      }
+    } else {
+      accumulator.push(currentValue);
+    }
+    return accumulator;
   }
 
   private static createTripStats(

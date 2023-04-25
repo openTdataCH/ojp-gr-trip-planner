@@ -48,23 +48,26 @@ export class InterRegionTripAtStart extends InterRegionTrip {
         }),
       )
     ).flatMap(f => (f ? [f] : []));
-    const bestTrips = this.findBestTrips(tripsToExchangePointsWrappers);
+    const bestTrips = InterRegionTripAtStart.findBestTrips(
+      tripsToExchangePointsWrappers,
+    );
     return new InterRegionTripAtIntermediate(
       this.tripServiceRequest,
       this.system1,
       this.system2,
       bestTrips,
-      tripsToExchangePointsWrappers.map(t => t.tripResponse.contextLocations),
+      tripsToExchangePointsWrappers,
     );
   }
 
-  private findBestTrips(
+  private static findBestTrips(
     tripsToExchangePointWrapper: tripsToExchangePointsWrapper[],
     limit = 5,
   ) {
     return tripsToExchangePointWrapper
-      .flatMap(this.indexTripsToExchangePoint)
-      .sort(InterRegionTripAtStart.sortOnArrivalTime)
+      .map(this.sortAndFilterTrips)
+      .flatMap(InterRegionTripAtStart.indexTripsToExchangePoint)
+      .sort(InterRegionTrip.sortWrapperOnArrivalTime)
       .slice(0, limit);
   }
 
@@ -77,26 +80,30 @@ export class InterRegionTripAtStart extends InterRegionTrip {
     return await getTripResponse(tripRequest);
   }
 
-  private indexTripsToExchangePoint(
-    tripsToEPWrapper: tripsToExchangePointsWrapper,
-    tripsResponsesIndex: number,
-  ) {
-    return tripsToEPWrapper.tripResponse.trips.map(trip => {
-      return {
-        trip,
-        exchangePoint: tripsToEPWrapper.exchangePoint,
-        tripsResponsesIndex,
-      };
-    });
+  private static sortAndFilterTrips(wrapper: tripsToExchangePointsWrapper) {
+    return {
+      ...wrapper,
+      tripResponse: {
+        ...wrapper.tripResponse,
+        trips: wrapper.tripResponse.trips
+          .sort(InterRegionTrip.sortOnArrivalTime)
+          .filter(x => !!x),
+      },
+    };
   }
 
-  private static sortOnArrivalTime(
-    tripWrapper1: indexedTripWrapper,
-    tripWrapper2: indexedTripWrapper,
-  ) {
-    return (
-      (tripWrapper1.trip.computeArrivalTime()?.getTime() ?? 0) -
-      (tripWrapper2.trip.computeArrivalTime()?.getTime() ?? 0)
-    );
+  private static indexTripsToExchangePoint(
+    tripsToEPWrapper: tripsToExchangePointsWrapper,
+    tripsResponsesIndex: number,
+  ): indexedTripWrapper[] {
+    return tripsToEPWrapper.tripResponse.trips[0]
+      ? [
+          {
+            trip: tripsToEPWrapper.tripResponse.trips[0],
+            exchangePoint: tripsToEPWrapper.exchangePoint,
+            tripsResponsesIndex,
+          },
+        ]
+      : [];
   }
 }
