@@ -1,4 +1,5 @@
 import * as OJP from 'ojp-sdk';
+import { Duration } from 'ojp-sdk/lib/shared/duration';
 import { TripServiceRequest } from '../../types/serviceRequests';
 import { PASSIVE_SYSTEM } from '../../config/passiveSystems';
 import {
@@ -85,11 +86,12 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
   private static createTripStats(
     tripToEP: indexedTripWrapper,
     tripFromEP: OJP.TripsResponse,
+    intermediateLegDuration: Duration,
   ) {
     return {
-      duration: tripToEP.trip.stats.duration.plus(
-        tripFromEP.trips[0].stats.duration,
-      ),
+      duration: tripToEP.trip.stats.duration
+        .plus(tripFromEP.trips[0].stats.duration)
+        .plus(intermediateLegDuration),
       distanceMeters:
         tripToEP.trip.stats.distanceMeters +
         tripFromEP.trips[0].stats.distanceMeters,
@@ -106,9 +108,15 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
     tripToEP: indexedTripWrapper,
     tripFromEP: OJP.TripsResponse,
   ) {
+    const intermediateLegDuration =
+      InterRegionTripAtDestination.computeIntermediateTripDuration(
+        tripToEP,
+        tripFromEP,
+      );
     const tripStats = InterRegionTripAtDestination.createTripStats(
       tripToEP,
       tripFromEP,
+      intermediateLegDuration,
     );
     const intermediateLeg = new OJP.TripContinousLeg(
       'TransferLeg',
@@ -117,6 +125,7 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
       tripToEP.trip.legs[tripToEP.trip.legs.length - 1].toLocation,
       tripFromEP.trips[0].legs[0].fromLocation,
     );
+    intermediateLeg.legDuration = intermediateLegDuration;
     return new OJP.Trip(
       tripToEP.trip.id + '::' + tripFromEP.trips[0].id,
       [...tripToEP.trip.legs, intermediateLeg, ...tripFromEP.trips[0].legs],
@@ -129,6 +138,19 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
       ...this.contextLocations[tripWrapper.tripToEP.tripsResponsesIndex],
       ...tripWrapper.tripFromEP.contextLocations,
     ];
+  }
+
+  private static computeIntermediateTripDuration(
+    tripToEP: indexedTripWrapper,
+    tripFromEP: OJP.TripsResponse,
+  ) {
+    const arrivalTimeAtEP = tripToEP.trip.computeArrivalTime()?.getTime();
+    const departureAtEP = tripFromEP.trips[0].computeDepartureTime()?.getTime();
+    return Duration.initFromTotalMinutes(
+      arrivalTimeAtEP && departureAtEP
+        ? (departureAtEP - arrivalTimeAtEP) / 60000
+        : 0,
+    );
   }
 
   private static reduceTripResponses(
