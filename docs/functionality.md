@@ -3,9 +3,9 @@
 ### APIs
 
 This server has two APIs
-- GET: /testXML/health
+- GET: /ojp/health
     - This is a healthcheck for the passive systems. This only will get the precomputed health results and not trigger a new check.
-- POST: /testXML
+- POST: /ojp
     - This endpoint will listen to all the incoming xml-requests from the frontend. At the moment this is:
         - LocationInformationRequest
         - TripRequest

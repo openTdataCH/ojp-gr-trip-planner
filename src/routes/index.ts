@@ -4,7 +4,7 @@ import { getHealthCheck } from '../controllers/healthCheck';
 
 const router = Router();
 
-router.post('/testXML', postOJPXML);
-router.get('/testXML/health', getHealthCheck);
+router.post('/ojp', postOJPXML);
+router.get('/ojp/health', getHealthCheck);
 
 export default router;
