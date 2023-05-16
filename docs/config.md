@@ -18,7 +18,7 @@
   `config.ts`
 
 - path: [./src/config/index.ts](./../src/config/index.ts)
-- configure all the static parameters of the server. Uses 
+- configure all the static parameters of the server.
 
 `passiveSystems.ts`
 
