@@ -1,7 +1,7 @@
 import * as xmlbuilder from 'xmlbuilder2';
-import pkg from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 
-export function createLocationInfoResponse(locations: pkg.Location[]) {
+export function createLocationInfoResponse(locations: OJP.Location[]) {
   const xmlContent = {
     'siri:OJP': {
       '@xmlns:siri': 'http://www.siri.org.uk/siri',
@@ -27,7 +27,7 @@ export function createLocationInfoResponse(locations: pkg.Location[]) {
   return xmlTemplate.toString({ prettyPrint: true });
 }
 
-function createXMLForLocations(locations: pkg.Location[]): object[] {
+function createXMLForLocations(locations: OJP.Location[]): object[] {
   return locations
     .sort((a, b) => {
       return (b.probability ?? 0) - (a.probability ?? 0);
@@ -48,7 +48,7 @@ function createXMLForLocations(locations: pkg.Location[]): object[] {
     });
 }
 
-function insertStopPlace(location: pkg.Location) {
+function insertStopPlace(location: OJP.Location) {
   return location.stopPlace
     ? {
         'ojp:StopPlace': {
@@ -65,7 +65,7 @@ function insertStopPlace(location: pkg.Location) {
     : {};
 }
 
-function insertGeoPosition(location: pkg.Location) {
+function insertGeoPosition(location: OJP.Location) {
   return location.geoPosition
     ? {
         'ojp:GeoPosition': {
@@ -76,7 +76,7 @@ function insertGeoPosition(location: pkg.Location) {
     : {};
 }
 
-function insertLocationName(location: pkg.Location) {
+function insertLocationName(location: OJP.Location) {
   return location.locationName
     ? {
         'ojp:LocationName': {
@@ -89,7 +89,7 @@ function insertLocationName(location: pkg.Location) {
     : {};
 }
 
-function insertTopographicPlace(location: pkg.Location) {
+function insertTopographicPlace(location: OJP.Location) {
   return location.topographicPlace
     ? {
         'ojp:TopographicPlace': {
@@ -105,7 +105,7 @@ function insertTopographicPlace(location: pkg.Location) {
     : {};
 }
 
-function insertAddress(location: pkg.Location) {
+function insertAddress(location: OJP.Location) {
   return location.address
     ? {
         'ojp:Adress': {

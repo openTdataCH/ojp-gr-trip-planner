@@ -1,4 +1,4 @@
-import { GeoPosition } from 'ojp-sdk';
+import * as OJP from 'ojp-sdk';
 import { PASSIVE_SYSTEM } from '../config/passiveSystems';
 import { Place } from '../ojp-sdk-extension/Place';
 
@@ -26,9 +26,9 @@ export class ExchangePoint {
     return this.systemPlaceMap.get(system);
   }
 
-  public getManhattanDistance(origin: GeoPosition, destination: GeoPosition) {
+  public getManhattanDistance(origin: OJP.GeoPosition, destination: OJP.GeoPosition) {
     const exchangePoint = (this.place1.geoPosition ??
-      this.place2.geoPosition) as GeoPosition;
+      this.place2.geoPosition) as OJP.GeoPosition;
     if (!exchangePoint) return Number.MAX_VALUE;
     return (
       origin.distanceFrom(exchangePoint) +
