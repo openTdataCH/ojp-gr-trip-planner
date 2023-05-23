@@ -30,7 +30,12 @@ export const postOJPXML = async (req: Request, res: Response) => {
   };
 
   const xmlRequest: XMLRequest = req.body;
-  const serviceRequest = xmlToServiceRequest(xmlRequest);
+  let serviceRequest;
+  try {
+    serviceRequest = xmlToServiceRequest(xmlRequest);
+  } catch (e) {
+    return res.status(400).send();
+  }
 
   if (serviceRequest.error) {
     return res.status(400).send();
