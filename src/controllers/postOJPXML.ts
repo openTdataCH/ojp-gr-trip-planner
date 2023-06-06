@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import * as xml2js from 'xml2js';
 import jsdom from 'jsdom';
 import * as OJP from 'ojp-sdk';
-import { APP_Stage } from 'ojp-sdk';
 import {
   createLocationInfoResponse,
   NameToSystemMapper,
@@ -85,10 +84,7 @@ async function handleLocationInformationRequest(initialInput: string) {
           await locationInformationRequest(passiveSystem, initialInput)
         ).map(location => {
           location.originSystem = passiveSystem.key;
-          if (
-            passiveSystem.key === ('STA' as APP_Stage) &&
-            location.probability
-          ) {
+          if (passiveSystem.key === 'STA' && location.probability) {
             location.probability += CONFIG.STA_SEARCH_TWEAK;
           }
           NameToSystemMapper.add(location, passiveSystem.key as PASSIVE_SYSTEM);

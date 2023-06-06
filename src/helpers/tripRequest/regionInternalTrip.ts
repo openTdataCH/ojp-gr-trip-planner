@@ -4,6 +4,7 @@ import {
   PASSIVE_SYSTEM,
   passiveSystemsConfig,
 } from '../../config/passiveSystems';
+import CONFIG from '../../config';
 
 export function generateTripRequestForPassiveSystem(
   tripServiceRequest: ServiceRequest & { requestType: 'TripRequest' },
@@ -33,7 +34,12 @@ export function generateTripRequestForPassiveSystem(
     new OJP.TripLocationPoint(destination),
     departTime,
   );
-  return new OJP.TripRequest(passiveSystemsConfig[system], tripRequestParams!);
+  tripRequestParams!.useNumberOfResultsAfter = true;
+  return new OJP.TripRequest(passiveSystemsConfig[system], {
+    ...tripRequestParams!,
+    useNumberOfResultsAfter: true,
+    includeLegProjection: CONFIG.WITH_LINK_PROJECTION,
+  });
 }
 
 export async function getTripResponse(
