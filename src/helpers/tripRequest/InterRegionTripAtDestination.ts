@@ -27,6 +27,7 @@ export class InterRegionTripAtDestination extends InterRegionTrip {
   public getTripResponse(): OJP.TripsResponse {
     const tripResponse = this.prepareTripResponses().reduce(
       InterRegionTripAtDestination.reduceTripResponses,
+      new OJP.TripsResponse(true, '', [], []),
     );
     return {
       ...tripResponse,
