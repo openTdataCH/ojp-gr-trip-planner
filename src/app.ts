@@ -38,9 +38,6 @@ export const createApp = (): express.Application => {
 
   // @ts-ignore
   app.use((req, res, next) => {
-    // set the CORS policy
-    res.header('Access-Control-Allow-Origin', '*');
-    // set the CORS headers
     res.header(
       'Access-Control-Allow-Headers',
       'origin, X-Requested-With,Content-Type,Accept, Authorization',
